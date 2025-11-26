@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.env
+.venv
+env/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Dashboard / Node
+steer-dashboard/node_modules/
+steer-dashboard/.next/
+steer-dashboard/out/
+
+# Steer Runtime Logs (Don't commit your local test runs)
+.steer/
+steer_rules.yaml
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
