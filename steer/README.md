@@ -30,7 +30,7 @@ Steer provides a Human-in-the-Loop workflow to fix "Confident Idiot" agents.
 ### 1. Catch (The Guard)
 Steer wraps your agent and blocks bad outputs *before* they reach the user.
 
-![JSON Structure Guard Demo](assets/demo_json.gif)
+![JSON Structure Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_json.gif)
 
 ```text
 [Steer] 🤖 Agent generating profile...
