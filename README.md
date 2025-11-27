@@ -2,64 +2,69 @@
 ### The Active Reliability Layer for AI Agents.
 
 **Stop debugging. Start teaching.**  
-Steer is an open-source telemetry and verification SDK designed to catch "Confident Idiot" agents in production before they break trust with your users.
+Steer is an open-source SDK that turns runtime failures into permanent fixes.
+
+Most reliability tools just **log** errors and send you an alert.  
+**Steer intercepts the error, lets you "Teach" the agent the correct behavior, and fixes it instantly.**
 
 [![PyPI version](https://badge.fury.io/py/steer-sdk.svg)](https://badge.fury.io/py/steer-sdk)
 
 ---
 
-## 🛑 The Problem
+## 🛑 The Problem: Logging isn't Enough
 
-Agents fail in dangerous ways that standard evaluations miss:
-1.  **Strict JSON failures:** Wrapping output in markdown.
-2.  **Safety leaks:** Outputting PII despite system prompts.
-3.  **Ambiguity:** Guessing "Springfield, IL" when the user didn't specify a state.
+When an agent fails in production (e.g., outputs bad JSON or leaks PII), seeing a log doesn't help the user who just got a crash. You have to:
+1.  Dig through logs.
+2.  Reproduce the prompt.
+3.  Edit your prompt template.
+4.  Redeploy.
 
-**Steer wraps your agent in a Verification Layer that catches these logic, context, and format failures in real-time.**
+**Steer creates a "Teaching Layer" around your agent.** You catch the failure in real-time, provide a correction in the UI, and Steer injects that "memory" into the agent immediately—no code changes required.
 
 ---
-## 🚀 See Steer in Action
 
-The Steer workflow is simple: **Catch → Teach → Fix.**
+## ⚡ The Teaching Loop: Catch → Teach → Fix
 
-### 1. Fix Broken JSON
-**The Problem:** Agents often wrap JSON in Markdown (```json), breaking your app.
-**The Fix:** Steer blocks the bad output. You click "Strict JSON" in the UI. The agent learns.
+Steer provides a Human-in-the-Loop workflow to fix "Confident Idiot" agents.
+
+### 1. Catch (The Guard)
+Steer wraps your agent and blocks bad outputs *before* they reach the user.
+
+![JSON Structure Guard Demo](assets/demo_json.gif)
 
 ```text
-# Run 1: Failure
-[Steer] 🤖 Generating profile...
-[Steer] 🚨 BLOCKED: Structure Guard Triggered (Detected Markdown).
-[Steer] 👉 Go to 'steer ui' to teach the agent.
+[Steer] 🤖 Agent generating profile...
+[Steer] 🚨 BLOCKED: Structure Guard (Detected Markdown wrapping).
+[Steer] 🛡️ Execution halted.
+```
 
-# Run 2: Success (After Teaching)
-[Steer] 🧠 Context loaded: Rules found! Applying fix...
+### 2. Teach (The Fix)
+Instead of editing code, go to **Steer Mission Control**.
+*   Click the blocked incident.
+*   Click **"Teach"**.
+*   Select the fix (e.g., **"Strict JSON Mode"**).
+
+*Steer now remembers this rule for this agent.*
+
+### 3. Fix (The Result)
+Run the agent again. Steer automatically injects your teaching instruction. The agent self-corrects.
+
+```text
+[Steer] 🧠 Context loaded: "Strict JSON" rule found. Applying fix...
 [Steer] ✅ SUCCESS: Agent output valid JSON.
 ```
 
-### 2. Prevent Data Leaks
-**The Problem:** Agents accidentally output PII (emails/keys) despite system prompts.
-**The Fix:** Steer's regex guard halts the execution before data leaves the server.
+---
 
-```text
-[Steer] 🤖 Summarizing ticket...
-[Steer] 🚨 BLOCKED: PII Shield Triggered (Visible email address).
-[Steer] 🛡️ Action Blocked.
-```
+## 🛡️ Supported Guardrails
 
-### 3. Enforce Business Logic
-**The Problem:** An agent guesses an ambiguous answer (e.g., "Springfield") instead of asking the user.
-**The Fix:** Steer forces the agent to ask clarifying questions when search results are ambiguous.
+Steer comes with 3 "Teach-Ready" verifiers out of the box:
 
-```text
-# Run 1: Failure
-[Steer] 🤖 Searching for 'Springfield'...
-[Steer] 🚨 BLOCKED: Business Logic Guard (34 results found, expected clarification).
-
-# Run 2: Success (After Teaching)
-[Steer] 🧠 Context loaded: Ambiguity rules active.
-[Steer] ✅ SUCCESS: Agent asked: "Which state are you interested in?"
-```
+| Verifier | The Problem | The "Teaching" Fix |
+| :--- | :--- | :--- |
+| **JsonVerifier** | Agent wraps code in \`\`\`json blocks | **"Force JSON"**: Inject system instruction to output raw JSON only. |
+| **RegexVerifier** | Agent leaks PII (Emails/Keys) | **"Redact PII"**: Force agent to replace sensitive patterns with [REDACTED]. |
+| **AmbiguityVerifier** | Agent guesses ambiguous answers | **"Ask Clarification"**: Force agent to ask user questions if >3 results found. |
 
 ---
 
@@ -70,7 +75,7 @@ Steer v0.2+ will introduce the "Slow Path" (Automated Model Improvement).
 
 **Coming Soon:**
 
-*   **Query by Committee:** Automated consensus checks for ambiguous prompts (e.g., asking 3 models and voting on the safest answer).
+*   **Query by Committee:** Automated consensus checks for ambiguous prompts.
 *   **Automated Fine-Tuning:** A pipeline to turn your accumulated (Incident -> Fix) logs into a fine-tuned model that stops making those mistakes entirely.
 *   **CI/CD Integration:** Block Pull Requests if an agent fails a reliability test suite.
 
@@ -84,50 +89,52 @@ pip install steer-sdk
 
 ## ⚡ Quickstart
 
-The fastest way to see Steer in action is to generate the interactive examples.
+The fastest way to experience the **Teaching Loop** is to generate the interactive examples.
 
 ### 1. Generate Demos
 Run this in your terminal to create 3 example agents:
 ```bash
 steer init
 ```
+
 *> Created 01_structure_guard.py*
+
 *> Created 02_safety_guard.py*
+
 *> Created 03_logic_guard.py*
 
-### 2. The Workflow (Fail → Teach → Fix)
-Steer is designed to be interactive. Try the **Structure Guard** demo:
+### 2. Run & Fail
+Run the Structure Guard demo. It will fail on purpose.
+```bash
+python 01_structure_guard.py
+# 🚨 BLOCKED: Detected Markdown code blocks.
+```
 
-1.  **Run & Fail:**
-    The agent attempts to output JSON but wraps it in Markdown (a common LLM error). Steer blocks it.
-    ```bash
-    python 01_structure_guard.py
-    # 🚨 BLOCKED: Detected Markdown code blocks.
-    ```
+### 3. Teach the Agent
+Open the dashboard.
+```bash
+steer ui
+```
+*   Go to **http://localhost:8000**
+*   Click **Teach** on the active incident.
+*   Select **"Strict JSON Mode"** and save.
 
-2.  **Teach:**
-    Open the dashboard to see the incident and provide a fix.
-    ```bash
-    steer ui
-    ```
-    *   Go to **http://localhost:8000**
-    *   Click **Teach** on the active incident.
-    *   Select **"Strict JSON Mode"** (or write a custom rule) and click **Save**.
+### 4. Run & Succeed
+Run the script again. The agent detects the new rule and fixes itself.
+```bash
+python 01_structure_guard.py
+# 🧠 Context loaded: Rules found! Applying fix...
+# ✅ SUCCESS: Agent output valid JSON.
+```
 
-3.  **Run & Succeed:**
-    Run the script again. The agent detects the new rule and self-corrects.
-    ```bash
-    python 01_structure_guard.py
-    # 🧠 Context loaded: Rules found! Applying fix...
-    # ✅ SUCCESS: Agent output valid JSON.
-    ```
+---
 
 ## 🛠️ Integration
 
 To add Steer to your own existing agent:
 
 ```python
-from steer import capture
+from steer import capture, get_context
 from steer.verifiers import JsonVerifier
 
 # 1. Define Verifiers
@@ -136,7 +143,12 @@ json_check = JsonVerifier(name="Strict JSON")
 # 2. Decorate your Agent Function
 @capture(verifiers=[json_check])
 def my_agent(user_input):
-    # Your LLM call here
+    
+    # 3. (Optional) Inject Teaching Context
+    # This allows the agent to read rules you added in the Dashboard
+    teaching_context = get_context("my_agent_name")
+    
+    # ... Your LLM call (pass teaching_context to system prompt) ...
     return llm_response
 ```
 
@@ -149,3 +161,5 @@ To use advanced LLM-based verifiers (like `FactConsistencyVerifier`), set your k
 export GEMINI_API_KEY=AIzaSy...
 # OR
 export OPENAI_API_KEY=sk-...
+```
+```
