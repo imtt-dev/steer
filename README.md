@@ -131,10 +131,10 @@ python 01_structure_guard.py
 
 ## 🛠️ Integration
 
-To add Steer to your own existing agent:
+To add Steer to your own existing agent, just add `steer_rules` to your function arguments.
 
 ```python
-from steer import capture, get_context
+from steer import capture
 from steer.verifiers import JsonVerifier
 
 # 1. Define Verifiers
@@ -142,14 +142,14 @@ json_check = JsonVerifier(name="Strict JSON")
 
 # 2. Decorate your Agent Function
 @capture(verifiers=[json_check])
-def my_agent(user_input):
+def my_agent(user_input, steer_rules=""):
     
-    # 3. (Optional) Inject Teaching Context
-    # This allows the agent to read rules you added in the Dashboard
-    teaching_context = get_context("my_agent_name")
+    # 3. Steer automatically injects rules here!
+    # Pass 'steer_rules' to your system prompt.
+    system_prompt = f"You are a helpful assistant.\n{steer_rules}"
     
-    # ... Your LLM call (pass teaching_context to system prompt) ...
-    return llm_response
+    # ... Your LLM call ...
+    return llm.call(system_prompt, user_input)
 ```
 
 ## 🔑 Configuration (Optional)

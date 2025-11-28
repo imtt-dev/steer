@@ -1,31 +1,22 @@
 import json
-from steer import capture, get_context
+from steer import capture
 from steer.verifiers import JsonVerifier
 
 # Scenario: An agent trying to output data for a frontend.
-# The "Smart" agent checks if the user has provided specific instructions.
-
 json_guard = JsonVerifier(name="Structure Guard")
 
+# ✅ NEW: Add 'steer_rules' to arguments. Steer injects the fix here automatically.
 @capture(tags=["format_demo"], verifiers=[json_guard])
-def generate_user_profile(user_id: int):
+def generate_user_profile(user_id: int, steer_rules: str = ""):
     print(f"🤖 Generating profile for User {user_id}...")
     
-    # 1. Check if the user has taught the agent
-    # In a real app, this text is injected into the LLM system prompt.
-    rules = get_context("format_demo")
-    
-    if rules:
-        print("   🧠 Context loaded: Rules found! Applying fix...")
-        # SIMULATED SUCCESS: The LLM follows the rule
-        return json.dumps({
-            "id": 123,
-            "name": "Alice",
-            "active": True,
-            "status": "Corrected by Steer"
-        }, indent=2)
+    # Check if Steer injected any teaching rules
+    if steer_rules:
+        print(f"   🧠 Context loaded: {steer_rules.strip()}")
+        # SIMULATED SUCCESS: The LLM follows the rule (Outputting raw JSON)
+        return json.dumps({"id": 123, "name": "Alice", "active": True}, indent=2)
     else:
-        print("   🧠 Context loaded: No rules found. Using default behavior.")
+        print("   🧠 Context loaded: None (Using default behavior)")
         # SIMULATED FAILURE: The LLM wraps it in markdown
         return """```json
 {
@@ -42,5 +33,4 @@ if __name__ == "__main__":
         print("\n✅ SUCCESS: Agent output valid JSON.")
     except Exception as e:
         print(f"\n🚨 BLOCKED BY STEER: {e}")
-        print("👉 Go to 'steer ui' (http://localhost:8000), click 'Teach', and add a rule.")
-        print("👉 Then run this script again to see the fix.")
+        print("👉 Run 'steer ui', click 'Teach', and add a rule.")

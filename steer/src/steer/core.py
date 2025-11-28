@@ -1,10 +1,7 @@
 import functools
-import time
-import uuid
-import json
-import traceback
+import inspect
 from datetime import datetime, timezone
-from typing import Any, Callable, List
+from typing import Callable, List, Any
 
 from .schemas import Incident, TraceStep, TeachingOption
 from .worker import get_worker
@@ -12,7 +9,6 @@ from .verifiers import BaseVerifier
 from .storage import rulebook 
 
 class VerificationError(Exception):
-    """Raised when a verifier blocks execution."""
     def __init__(self, message, result):
         super().__init__(message)
         self.result = result
@@ -28,22 +24,34 @@ def capture(
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             start_time = datetime.now(timezone.utc)
+            current_agent = tags[0] if tags and len(tags) > 0 else "default_agent"
+            
+            # --- 1. DEPENDENCY INJECTION (The Magic) ---
+            # Check if the user's function asks for 'steer_rules'
+            sig = inspect.signature(func)
+            if "steer_rules" in sig.parameters:
+                # Only inject if not manually provided by the caller
+                if "steer_rules" not in kwargs:
+                    active_rules = rulebook.get_rules_text(current_agent)
+                    kwargs["steer_rules"] = active_rules
+
+            # --- 2. TRACING SETUP ---
             error_msg = None
             result = None
             trace_steps: List[TraceStep] = []
             
-            # 1. Capture User Input
             display_input = ""
             if args and isinstance(args[0], str):
                 display_input = args[0]
             elif kwargs:
-                display_input = ", ".join([str(v) for v in kwargs.values()])
+                display_input = ", ".join([f"{k}={v}" for k, v in kwargs.items() if k != 'steer_rules'])
             else:
                 display_input = "No Input"
 
             trace_steps.append(TraceStep(type="user", title="User Input", content=display_input))
             trace_steps.append(TraceStep(type="agent", title="Reasoning", content=f"Executing {func.__name__}..."))
 
+            # --- 3. EXECUTION ---
             try:
                 result = func(*args, **kwargs)
                 
@@ -57,23 +65,21 @@ def capture(
                 error_msg = str(e)
                 trace_steps.append(TraceStep(type="error", title="Runtime Exception", content=f"❌ {error_msg}"))
             
-            # --- VERIFICATION LOGIC ---
+            # --- 4. VERIFICATION ---
             detected_failure = None
             verification_label = "Runtime Monitor"
             smart_fixes = [] 
 
-            current_agent = tags[0] if tags and len(tags) > 0 else "default_agent"
-
             if verifiers and error_msg is None:
+                # Prepare inputs for verifiers (include rules so verifiers know context)
                 flat_inputs = {}
                 if kwargs: flat_inputs.update(kwargs)
                 
-                active_rules_text = rulebook.get_rules_text(current_agent)
-                flat_inputs['__active_rules__'] = active_rules_text
+                # Always pass current rules to verifiers implicitly
+                flat_inputs['__active_rules__'] = rulebook.get_rules_text(current_agent)
                 
                 for v in verifiers:
                     v_result = v.verify(flat_inputs, result)
-                    
                     if not v_result.passed:
                         trace_steps.append(TraceStep(
                             type="error",
@@ -85,18 +91,16 @@ def capture(
                         smart_fixes = v_result.suggested_fixes 
                         break 
             
-            # --- 5. LOGGING (Updated to Log Everything) ---
+            # --- 5. LOGGING ---
             is_failure = error_msg is not None or detected_failure is not None
             
             if is_failure:
                 log_status = "Active"
                 log_title = f"{verification_label} Failure" if detected_failure else "Runtime Error"
-                # Generate generic fix if none provided
                 if not smart_fixes:
                     smart_fixes = [TeachingOption(title="Suppress", description="Ignore rule.", logic_change="None")]
             else:
-                # SUCCESS CASE
-                log_status = "Resolved" # Auto-resolved so it doesn't clutter Inbox
+                log_status = "Resolved"
                 log_title = "Execution Success"
                 smart_fixes = []
 
@@ -109,7 +113,7 @@ def capture(
                 severity=severity if is_failure else "Low",
                 timestamp=start_time,
                 trace=trace_steps,
-                raw_inputs={'args': args, 'kwargs': kwargs},
+                raw_inputs={'args': [str(a) for a in args], 'kwargs': {k:str(v) for k,v in kwargs.items()}}, # Stringify for safety
                 raw_outputs=str(result),
                 teaching_options=smart_fixes 
             )
