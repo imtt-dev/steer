@@ -2,7 +2,7 @@
 name = "steer-sdk"
 version = "0.1.7"
 description = "The Active Reliability Layer for AI Agents"
-authors = ["Steer Dev <imtt.dev.contact@gmail.com>"]
+authors = ["Steer Dev <hello@steer-labs.com>"]
 readme = "README.md"
 repository = "https://github.com/imtt-dev/steer"
 homepage = "https://github.com/imtt-dev/steer"
