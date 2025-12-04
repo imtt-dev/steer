@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "steer-sdk"
+version = "0.2.1"
+description = "The Active Reliability Layer for AI Agents"
+authors = ["Steer Dev <hello@steer-labs.com>"]
+readme = "README.md"
+repository = "https://github.com/imtt-dev/steer"
+homepage = "https://steer-labs.com"
+
+# These must be inside [tool.poetry] before other sections
+packages = [
+    { include = "steer", from = "src" }
+]
+include = [
+    { path = "src/steer/ui", format = "wheel" }
+]
+
+# Dependencies must be a table (key = value), NOT a list
+[tool.poetry.dependencies]
+python = ">=3.13,<4.0"
+pydantic = ">=2.12.4,<3.0.0"
+httpx = ">=0.28.1,<0.29.0"
+opentelemetry-api = ">=1.38.0,<2.0.0"
+rich = ">=14.2.0,<15.0.0"
+litellm = ">=1.80.5,<2.0.0"
+python-dotenv = ">=1.2.1,<2.0.0"
+pyyaml = ">=6.0.3,<7.0.0"
+fastapi = ">=0.122.0,<0.123.0"
+uvicorn = ">=0.38.0,<0.39.0"
+langchain = ">=1.1.0,<2.0.0"
+langchain-openai = ">=1.1.0,<2.0.0"
+google-cloud-storage = ">=3.6.0,<4.0.0"
+google = ">=3.0.0,<4.0.0"
+
+[tool.poetry.scripts]
+steer = "steer.cli:main"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/imtt-dev/steer/issues"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
