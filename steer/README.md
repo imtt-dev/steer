@@ -72,6 +72,33 @@ def my_agent(user_input, steer_rules=""):
     return llm.call(system_prompt, user_input)
 ```
 
+## 🧬 Data Engine: From Guardrails to Fine-Tuning
+
+Steer does not just catch errors; it creates the dataset needed to fix them permanently.
+
+Every time a rule is applied or an agent succeeds, Steer logs the interaction. You can export these logs into a standard fine-tuning format (JSONL) compatible with OpenAI and other providers.
+
+### Export Training Data
+Run this command to convert your local logs into a dataset:
+
+```bash
+steer export
+```
+
+**Output:** `steer_fine_tune.jsonl`
+
+**Format:**
+```json
+{"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, {"role": "assistant", "content": "{\"valid\": \"json\"}"}]}
+```
+
+### The Fine-Tuning Workflow
+1.  **Capture:** Run your agent with Steer. Fix issues in the Dashboard.
+2.  **Export:** Run `steer export` to generate the dataset.
+3.  **Train:** Upload `steer_fine_tune.jsonl` to OpenAI/Anthropic to fine-tune a model.
+4.  **Remove:** Once the model is trained, you can often remove the strict guardrails, reducing latency.
+```
+
 ## Configuration
 
 The Quickstart demos use a Mock LLM and require **no API keys**.
