@@ -82,3 +82,7 @@ export GEMINI_API_KEY=...
 # OR
 export OPENAI_API_KEY=...
 ```
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=imtt-dev/steer&type=date&legend=top-left)](https://www.star-history.com/#imtt-dev/steer&type=date&legend=top-left)
