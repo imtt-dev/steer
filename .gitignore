@@ -23,3 +23,5 @@ steer_rules.yaml
 .vscode/
 .idea/
 .DS_Store
+steer_fine_tune.jsonl
+.steer/

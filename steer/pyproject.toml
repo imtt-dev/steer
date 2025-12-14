@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "steer-sdk"
-version = "0.2.1"
+version = "0.2.2"
 description = "The Active Reliability Layer for AI Agents"
 authors = ["Steer Dev <hello@steer-labs.com>"]
 readme = "README.md"

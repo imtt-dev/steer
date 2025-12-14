@@ -3,7 +3,11 @@ import uvicorn
 import webbrowser
 import argparse
 import os
+from rich.console import Console
 from steer.server import app
+from steer.exporter import export_data 
+
+console = Console()
 
 # --- DEMO 1: USER PROFILE AGENT ---
 DEMO_1_CONTENT = """import json
@@ -129,7 +133,11 @@ def start_server(port=8000):
 
 def main():
     parser = argparse.ArgumentParser(description="Steer AI - Active Reliability")
-    parser.add_argument("command", nargs="?", help="Command to run ('ui' or 'init')")
+    parser.add_argument("command", nargs="?", help="Command to run ('ui', 'init', 'export')")
+    
+    # Arguments for the export command
+    parser.add_argument("--format", default="openai", help="Export format (default: openai)")
+    parser.add_argument("--out", default="steer_fine_tune.jsonl", help="Output filename")
     
     args = parser.parse_args()
     
@@ -137,11 +145,14 @@ def main():
         start_server()
     elif args.command == "init":
         generate_demos()
+    elif args.command == "export":
+        # Call the exporter function
+        export_data(format_type=args.format, output_file=args.out)
     else:
-        print("Steer AI - The Active Reliability Layer")
-        print("Usage:")
-        print("  steer init   Generate examples")
-        print("  steer ui     Start dashboard")
+        console.print("[bold]Steer AI[/bold] - The Active Reliability Layer")
+        console.print("Run [green]steer init[/green] to generate examples.")
+        console.print("Run [green]steer ui[/green] to start the dashboard.")
+        console.print("Run [green]steer export[/green] to create fine-tuning data.")
 
 if __name__ == "__main__":
     main()
