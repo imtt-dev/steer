@@ -72,7 +72,7 @@ def my_agent(user_input, steer_rules=""):
     return llm.call(system_prompt, user_input)
 ```
 
-## 🧬 Data Engine: From Guardrails to Fine-Tuning
+##  Data Engine: From Guardrails to Fine-Tuning
 
 Steer does not just catch errors; it creates the dataset needed to fix them permanently.
 
@@ -97,7 +97,6 @@ steer export
 2.  **Export:** Run `steer export` to generate the dataset.
 3.  **Train:** Upload `steer_fine_tune.jsonl` to OpenAI/Anthropic to fine-tune a model.
 4.  **Remove:** Once the model is trained, you can often remove the strict guardrails, reducing latency.
-```
 
 ## Configuration
 
