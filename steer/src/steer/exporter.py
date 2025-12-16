@@ -1,6 +1,4 @@
 import json
-import time
-from pathlib import Path
 from typing import List, Dict, Any
 from rich.console import Console
 from .config import settings
@@ -55,7 +53,8 @@ def export_data(format_type: str = "openai", output_file: str = "steer_fine_tune
         console.print(f"File created: [bold]{output_file}[/bold]")
         console.print("[dim]IMPORTANT: Review this file before uploading to OpenAI to ensure no PII/sensitive data is included.[/dim]")
         
-        _trigger_email_capture()
+        # New Community Hook (No email, just value)
+        _print_community_hook()
     else:
         console.print("[yellow]No successful runs found to export.[/yellow]")
 
@@ -72,29 +71,13 @@ def _extract_input(record: dict) -> str:
         
     return "Unknown Input"
 
-def _trigger_email_capture():
+def _print_community_hook():
     """
-    The 'Lock-in' Hook.
-    Captures user interest in the Cloud Platform locally.
+    Directs power users to GitHub Discussions instead of asking for email.
     """
-    config_path = settings.steer_dir / "user_config.json"
-    
-    # If we already have their email, don't bug them
-    if config_path.exists():
-        return
-
-    console.print("\n" + "-"*50)
-    console.print("[bold]Steer Cloud (Private Beta)[/bold]")
-    console.print("We are building a platform to automate this fine-tuning loop.")
-    console.print("-" * 50)
-    
-    email = console.input("\nEnter email for early access: ")
-    
-    if email and "@" in email:
-        # Save locally so we don't ask again
-        with open(config_path, 'w') as f:
-            json.dump({"email": email, "signup_date": time.time()}, f)
-            
-        console.print(f"[green]Added {email} to priority list.[/green]")
-    else:
-        console.print("[dim]Skipped.[/dim]")
+    console.print("\n" + "-"*60)
+    console.print("[bold]Next Step: Fine-Tuning[/bold]")
+    console.print("You can upload this JSONL file directly to OpenAI or Anthropic.")
+    console.print("\n[dim]Have questions or want to share your results?[/dim]")
+    console.print("👉 Join the discussion: [link=https://github.com/imtt-dev/steer/discussions]https://github.com/imtt-dev/steer/discussions[/link]")
+    console.print("-" * 60)
