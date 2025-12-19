@@ -115,8 +115,8 @@ The **Confident Idiot** is a failure mode where an LLM generates a factually inc
 
 Unlike traditional software that crashes when it fails, LLMs fail silently and plausibly.
 
-*   **Example:** User asks *"Weather in Springfield"*. The agent confidently guesses *"Springfield, IL"*—ignoring the fact that there are 33 other Springfields in the USA.
-*   **The Fix:** Steer prevents this by enforcing **Reality Locks**—deterministic checks that run *after* generation but *before* the user sees the response.
+*   **Example:** User asks "Weather in Springfield". The agent confidently guesses "Springfield, IL" (ignoring the fact that there are 33 other Springfields in the USA).
+*   **The Fix:** Steer prevents this by enforcing **Reality Locks** (deterministic checks) that run *after* generation but *before* the user sees the response.
 
 [Read the viral discussion on Hacker News.](https://news.ycombinator.com/item?id=46152838)
 
