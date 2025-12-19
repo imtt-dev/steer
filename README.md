@@ -72,7 +72,7 @@ def my_agent(user_input, steer_rules=""):
     return llm.call(system_prompt, user_input)
 ```
 
-##  Data Engine: From Guardrails to Fine-Tuning
+## 🧬 Data Engine: From Guardrails to Fine-Tuning
 
 Steer does not just catch errors; it creates the dataset needed to fix them permanently.
 
@@ -108,6 +108,16 @@ export GEMINI_API_KEY=...
 # OR
 export OPENAI_API_KEY=...
 ```
+
+## ❓ What is the "Confident Idiot" Problem?
+
+The **Confident Idiot** is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence).
+
+Unlike traditional software that crashes when it fails, LLMs fail silently and plausibly.
+*   **Example:** An agent confidently guessing "Springfield, IL" when the user didn't specify a state.
+*   **The Fix:** Steer prevents this by enforcing **Reality Locks**—deterministic checks that run *after* generation but *before* the user sees the response.
+
+[Read the original viral post here.](https://steerlabs.substack.com/p/confident-idiot-problem)
 
 ## Star History
 
