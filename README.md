@@ -109,16 +109,20 @@ export GEMINI_API_KEY=...
 export OPENAI_API_KEY=...
 ```
 
-## ❓ What is the "Confident Idiot" Problem?
+## What is the "Confident Idiot" Problem?
 
 The **Confident Idiot** is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence).
 
 Unlike traditional software that crashes when it fails, LLMs fail silently and plausibly.
-*   **Example:** An agent confidently guessing "Springfield, IL" when the user didn't specify a state.
+
+*   **Example:** User asks *"Weather in Springfield"*. The agent confidently guesses *"Springfield, IL"*—ignoring the fact that there are 33 other Springfields in the USA.
 *   **The Fix:** Steer prevents this by enforcing **Reality Locks**—deterministic checks that run *after* generation but *before* the user sees the response.
 
-[Read the original viral post here.](https://steerlabs.substack.com/p/confident-idiot-problem)
+[Read the viral discussion on Hacker News.](https://news.ycombinator.com/item?id=46152838)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=imtt-dev/steer&type=date&legend=top-left)](https://www.star-history.com/#imtt-dev/steer&type=date&legend=top-left)
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=imtt-dev/steer&type=date&legend=top-left)](https://www.star-history.com/#imtt-dev/steer&type=date&legend=top-left)
