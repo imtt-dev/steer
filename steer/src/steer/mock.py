@@ -14,7 +14,7 @@ class MockLLM:
     2. It inspects the 'system_prompt' for specific keywords injected by Steer.
     3. If it detects a 'Taught' rule, it switches to a 'Corrected' state.
     
-    This simulates the real-world behavior of a frontier model (GPT-4/Claude) 
+    This simulates the real-world behavior of a frontier model (Gemini/GPT/Claude) 
     obeying system instructions.
     """
     @staticmethod
