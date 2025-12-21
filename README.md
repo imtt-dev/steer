@@ -49,9 +49,20 @@ steer ui
 2.  Go to `http://localhost:8000`. Click **Teach**. Select **"Strict JSON"**.
 3.  Run `python 01_structure_guard.py` again. It will succeed.
 
-## Usage
+## Cookbook
 
-Steer uses a decorator pattern to wrap your existing functions.
+For complex, real-world implementations, explore the `cookbook/` directory.
+
+### RAG Reliability
+This example demonstrates how to enforce strict data schemas and grounding citations in a Retrieval-Augmented Generation (RAG) pipeline.
+*   **Pydantic Schema Enforcement:** Ensuring the agent always returns a valid, typed data structure.
+*   **Citation Verification:** Hard-locking the agent to cite its sources, preventing ungrounded claims.
+
+[View RAG Cookbook](steer/cookbook/rag_reliability.py)
+
+## Integration
+
+Steer uses a decorator pattern to wrap your existing functions. To add Steer to your own existing agent, just add `steer_rules` to your function arguments.
 
 ```python
 from steer import capture
