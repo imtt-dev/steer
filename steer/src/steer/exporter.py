@@ -73,11 +73,11 @@ def _extract_input(record: dict) -> str:
 
 def _print_community_hook():
     """
-    Directs power users to GitHub Discussions instead of asking for email.
+    Directs users to GitHub Discussions for community support.
     """
     console.print("\n" + "-"*60)
-    console.print("[bold]Next Step: Fine-Tuning[/bold]")
-    console.print("You can upload this JSONL file directly to OpenAI or Anthropic.")
-    console.print("\n[dim]Have questions or want to share your results?[/dim]")
-    console.print("👉 Join the discussion: [link=https://github.com/imtt-dev/steer/discussions]https://github.com/imtt-dev/steer/discussions[/link]")
+    console.print("Fine-tuning data is ready.")
+    console.print("This format is compatible with OpenAI and Anthropic fine-tuning APIs.")
+    console.print("\nQuestions or feedback on results?")
+    console.print("👉 Join the community: [link=https://github.com/imtt-dev/steer/discussions]https://github.com/imtt-dev/steer/discussions[/link]")
     console.print("-" * 60)
