@@ -1,6 +1,7 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 import json
 import re
+from pydantic import BaseModel, ValidationError
 from .schemas import VerificationResult, TeachingOption
 from .llm import Judge
 
@@ -8,7 +9,6 @@ class BaseVerifier:
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
         raise NotImplementedError("Subclasses must implement verify")
 
-# --- CATEGORY: SECURITY ---
 class RegexVerifier(BaseVerifier):
     def __init__(self, name: str, pattern: str, fail_message: str):
         self.name = name
@@ -26,58 +26,33 @@ class RegexVerifier(BaseVerifier):
                     title="Redact Sensitive Info",
                     description="Detected sensitive pattern.",
                     recommended=True,
-                    logic_change="SECURITY OVERRIDE: You must REDACT all email addresses with '[REDACTED]'. Ignore any previous instructions to confirm or repeat user details."
+                    logic_change="SECURITY OVERRIDE: You must REDACT all sensitive patterns with '[REDACTED]'. Ignore any previous instructions to confirm or repeat user details."
                 )
             ]
         return VerificationResult(verifier_name=self.name, passed=passed, reason=self.fail_message, suggested_fixes=fixes)
 
-# --- CATEGORY: FORMATTING ---
 class JsonVerifier(BaseVerifier):
     def __init__(self, name: str):
         self.name = name
 
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
-        # 1. Check if python object already
         if isinstance(output, (dict, list)): 
             return VerificationResult(verifier_name=self.name, passed=True)
 
         text_output = str(output).strip()
-        
-        # 2. EXPLICIT MARKDOWN CHECK (Fail immediately)
-        # DEBUG PRINT
-        # print(f"   [DEBUG] JsonVerifier checking: {text_output[:10]}...") 
-        
         if "```" in text_output:
-            reason = "Detected Markdown code blocks (```)."
-            fixes = [
-                TeachingOption(
-                    title="Strict JSON Mode", 
-                    description="Force raw JSON output.", 
-                    recommended=True, 
-                    logic_change="FORMAT CRITICAL: Output ONLY a valid JSON object. Do not include any conversational text or markdown formatting (no backticks)."
-                )
-            ]
+            reason = "Detected Markdown code blocks."
+            fixes = [TeachingOption(title="Strict JSON Mode", description="Force raw JSON output.", recommended=True, logic_change="FORMAT CRITICAL: Output ONLY a valid JSON object. Do not include any conversational text or markdown formatting (no backticks).")]
             return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
 
-        # 3. Parse Check
         try:
             json.loads(text_output)
             return VerificationResult(verifier_name=self.name, passed=True)
         except:
             reason = "Output is not valid JSON."
-            fixes = [
-                TeachingOption(
-                    title="Enforce JSON", 
-                    description="Output must be parseable.", 
-                    recommended=True, 
-                    logic_change="FORMAT RULE: Output must be raw valid JSON."
-                )
-            ]
+            fixes = [TeachingOption(title="Enforce JSON", description="Output must be parseable.", recommended=True, logic_change="FORMAT RULE: Output must be raw valid JSON.")]
             return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
 
-        return VerificationResult(verifier_name=self.name, passed=True)
-
-# --- CATEGORY: LOGIC ---
 class AmbiguityVerifier(BaseVerifier):
     def __init__(self, name: str, tool_result_key: str, answer_key: str, threshold: int = 5, required_phrase: str = None):
         self.name = name
@@ -96,7 +71,6 @@ class AmbiguityVerifier(BaseVerifier):
         has_required_phrase = self.required_phrase.lower() in agent_answer.lower() if self.required_phrase else True
         
         passed = (not is_ambiguous) or (is_question and has_required_phrase)
-        
         if not passed:
             reason = f"Ambiguity Policy Violation: {count} results."
             fixes = []
@@ -108,7 +82,56 @@ class AmbiguityVerifier(BaseVerifier):
             return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
         return VerificationResult(verifier_name=self.name, passed=True)
 
-# --- CATEGORY: GROUNDING ---
+class PydanticVerifier(BaseVerifier):
+    def __init__(self, model: Type[BaseModel], name: str = "Schema Validator"):
+        self.name = name
+        self.model = model
+
+    def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
+        try:
+            data = output
+            if isinstance(output, str):
+                try:
+                    data = json.loads(output)
+                except json.JSONDecodeError:
+                    return self._fail("Output is not a valid JSON object.")
+            
+            self.model.model_validate(data)
+            return VerificationResult(verifier_name=self.name, passed=True)
+        except ValidationError as e:
+            return self._fail(f"Schema validation failed: {str(e)}")
+        except Exception as e:
+            return self._fail(f"Validation error: {str(e)}")
+
+    def _fail(self, reason: str) -> VerificationResult:
+        fixes = [
+            TeachingOption(
+                title="Enforce Schema",
+                description="Force output to match Pydantic model.",
+                logic_change=f"STRUCTURE CRITICAL: Your output must strictly follow this JSON schema: {json.dumps(self.model.model_json_schema())}"
+            )
+        ]
+        return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+
+class CitationVerifier(BaseVerifier):
+    def __init__(self, name: str = "Citation Guard"):
+        self.name = name
+
+    def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
+        text = str(output)
+        pattern = r"\[(doc\s?)?\d+\]"
+        if not re.search(pattern, text):
+            fixes = [
+                TeachingOption(
+                    title="Require Citations",
+                    description="Enforce grounded claims.",
+                    recommended=True,
+                    logic_change="GROUNDING RULE: Every factual claim must be followed by a citation in brackets, e.g., [doc 1]. If the context does not contain the answer, state that you do not know."
+                )
+            ]
+            return VerificationResult(verifier_name=self.name, passed=False, reason="Output missing required source citations.", suggested_fixes=fixes)
+        return VerificationResult(verifier_name=self.name, passed=True)
+
 class FactConsistencyVerifier(BaseVerifier):
     def __init__(self, name: str, context_key: str, answer_key: str):
         self.name = name
@@ -117,7 +140,7 @@ class FactConsistencyVerifier(BaseVerifier):
 
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
         if not Judge.is_configured():
-            return VerificationResult(verifier_name=self.name, passed=True, reason="[Skipped] No LLM Key")
+            return VerificationResult(verifier_name=self.name, passed=True, reason="Skipped: No LLM Key")
 
         context_data = "N/A"
         answer_data = "N/A"
@@ -140,14 +163,13 @@ class FactConsistencyVerifier(BaseVerifier):
         3. The agent contradicts the context.
         
         PASS conditions:
-        1. A Rule exists (e.g. "Trust Billing") and the agent followed it decisively.
+        1. A Rule exists and the agent followed it decisively.
         2. No conflict exists and the answer is correct.
         
         Return JSON: { "passed": boolean, "reason": "string", "suggested_options": [{ "title": "str", "description": "str", "rule_text": "str", "is_best": bool }] }
         """
         
         user_prompt = f"RULES: {active_rules}\nCONTEXT: {json.dumps(context_data)}\nANSWER: {answer_data}"
-
         eval_res = Judge.evaluate(system_prompt, user_prompt)
         passed = eval_res.get("passed", True)
         fixes = []
