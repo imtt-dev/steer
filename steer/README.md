@@ -72,7 +72,7 @@ def my_agent(user_input, steer_rules=""):
     return llm.call(system_prompt, user_input)
 ```
 
-## 🧬 Data Engine: From Guardrails to Fine-Tuning
+## Data Engine: From Guardrails to Fine-Tuning
 
 Steer does not just catch errors; it creates the dataset needed to fix them permanently.
 
