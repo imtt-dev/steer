@@ -179,3 +179,39 @@ class FactConsistencyVerifier(BaseVerifier):
             if not fixes: fixes.append(TeachingOption(title="Resolve Conflict", description="Define source of truth.", logic_change="Rule: Trust Source A over Source B."))
 
         return VerificationResult(verifier_name=self.name, passed=passed, reason=eval_res.get("reason"), suggested_fixes=fixes)
+
+class SlopVerifier(BaseVerifier):
+    def __init__(self, name="Slop Filter"):
+        self.name = name
+        self.slop_patterns = [
+            r"i apologize for",
+            r"as an ai",
+            r"delve into",
+            r"embark on",
+            r"it is important to note",
+            r"comprehensive guide",
+            r"revolutionary",
+            r"seamlessly",
+            r"unlock the potential"
+        ]
+
+    def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
+        text = str(output).lower()
+        if any(char for char in str(output) if char in "🚀🤖🧠✨⚡️"):
+            return self._fail("Detected emoji slop.")
+        if "—" in str(output):
+            return self._fail("Detected em dash slop.")
+        for pattern in self.slop_patterns:
+            if re.search(pattern, text):
+                return self._fail(f"Detected AI fingerprint: '{pattern}'")
+        return VerificationResult(verifier_name=self.name, passed=True)
+
+    def _fail(self, reason: str) -> VerificationResult:
+        fixes = [
+            TeachingOption(
+                title="Purify Signal",
+                description="Remove apologies, em dashes, and hype.",
+                logic_change="ANTI-SLOP PROTOCOL: Use short, blunt sentences. No emojis. No em dashes. Never apologize. Just provide the raw data."
+            )
+        ]
+        return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
