@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/steer.png" alt="Steer Logo" width="100">
+  <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/steer.png" alt="Steer Labs Logo" width="120">
 </p>
 
-<h1 align="center">Steer</h1>
+<p align="center">
+  <strong style="font-size: 2.5rem;">Steer</strong>
+</p>
 
 <p align="center">
   <a href="https://steer-labs.com" target="_blank">steer-labs.com</a>
