@@ -80,7 +80,6 @@ steer ui
 1.  **Fail:** Run `python 01_structure_guard.py`. The output will show `[-] Status: Blocked`.
 2.  **Teach:** Go to `http://localhost:8000`. Click the red incident, select **Teach**, and save the **Strict JSON** rule.
 3.  **Fix:** Run `python 01_structure_guard.py` again. The output will now show `[+] Status: Passed`.
-```
 
 ## Reality Locks in Action
 
