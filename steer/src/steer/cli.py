@@ -9,42 +9,35 @@ from steer.exporter import export_data
 
 console = Console()
 
-# --- DEMO 1: USER PROFILE AGENT ---
+# --- DEMO 1: USER PROFILE AGENT (JSON Structure) ---
 DEMO_1_CONTENT = """import json
 from steer import capture, MockLLM
 from steer.verifiers import JsonVerifier
 
-# Scenario: An agent generating data for a frontend.
 json_guard = JsonVerifier(name="Strict JSON")
 
 @capture(tags=["profile_generator"], verifiers=[json_guard])
 def generate_profile(request: str, steer_rules: str = ""):
-    print(f"Processing request: '{request}'...")
-    
-    # 1. Steer automatically injects rules into 'steer_rules'
-    # 2. We inject them into the System Prompt (Standard RAG/Agent pattern)
+    print(f"Action: Processing request '{request}'")
     system_prompt = f"You are a backend API. Output data based on the request.\\nReliability Rules: {steer_rules}"
-    
-    print(f"  System Prompt: {system_prompt.strip()}")
-
-    # 3. Call Model (Mocked for demo, replace with OpenAI in prod)
+    print(f"Context: {system_prompt.strip()}")
     return MockLLM.call(system_prompt, request)
 
 if __name__ == "__main__":
     print("--- Steer Demo: Profile Generator ---")
     try:
         generate_profile("Create active admin profile for Alice")
-        print("\\nSUCCESS: Valid JSON returned.")
+        print("[+] Status: Passed")
     except Exception as e:
-        print(f"\\nBLOCKED BY STEER: {e}")
-        print("Run 'steer ui' to fix the 'profile_generator'.")
+        print("[-] Status: Blocked")
+        print(f"Reason: {e}")
+        print("Action Required: Run 'steer ui' to fix the 'profile_generator'.")
 """
 
-# --- DEMO 2: SUPPORT BOT ---
+# --- DEMO 2: SUPPORT BOT (Privacy) ---
 DEMO_2_CONTENT = """from steer import capture, MockLLM
 from steer.verifiers import RegexVerifier
 
-# Scenario: A support bot summarizing tickets.
 email_guard = RegexVerifier(
     name="PII Shield",
     pattern=r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
@@ -53,29 +46,25 @@ email_guard = RegexVerifier(
 
 @capture(tags=["support_bot"], verifiers=[email_guard])
 def analyze_ticket(ticket_content: str, steer_rules: str = ""):
-    print(f"Analyzing: '{ticket_content}'...")
-    
-    # Inject rules into context
-    system_prompt = f"You are a helpful support agent.\\nSecurity Protocols: {steer_rules}"
-    print(f"  System Prompt: {system_prompt.strip()}")
-    
+    print(f"Action: Analyzing ticket '{ticket_content}'")
+    system_prompt = f"You are a support agent.\\nSecurity Protocols: {steer_rules}"
+    print(f"Context: {system_prompt.strip()}")
     return MockLLM.call(system_prompt, ticket_content)
 
 if __name__ == "__main__":
     print("--- Steer Demo: Support Bot ---")
     try:
         analyze_ticket("Ticket #994: Refund request from Alice")
-        print("\\nSUCCESS: PII was redacted.")
+        print("[+] Status: Passed")
     except Exception as e:
-        print(f"\\nBLOCKED BY STEER: {e}")
-        print("Run 'steer ui' to fix the 'support_bot'.")
+        print("[-] Status: Blocked")
+        print(f"Reason: {e}")
 """
 
-# --- DEMO 3: WEATHER BOT ---
+# --- DEMO 3: WEATHER BOT (Logic) ---
 DEMO_3_CONTENT = """from steer import capture, MockLLM
 from steer.verifiers import AmbiguityVerifier
 
-# Scenario: A weather bot checking forecasts.
 logic_guard = AmbiguityVerifier(
     name="Ambiguity Check",
     tool_result_key="results",
@@ -86,45 +75,67 @@ logic_guard = AmbiguityVerifier(
 
 @capture(tags=["weather_bot"], verifiers=[logic_guard])
 def check_forecast(location: str, steer_rules: str = ""):
-    print(f"Checking: '{location}'...")
-    
+    print(f"Action: Checking weather for '{location}'")
     system_prompt = f"You are a weather bot.\\nPolicy: {steer_rules}"
-    print(f"  System Prompt: {system_prompt.strip()}")
-    
+    print(f"Context: {system_prompt.strip()}")
     return MockLLM.call(system_prompt, location)
 
 if __name__ == "__main__":
     print("--- Steer Demo: Weather Bot ---")
     try:
         check_forecast("What is the weather in Springfield?")
-        print("\\nSUCCESS: Bot asked for clarification.")
+        print("[+] Status: Passed")
     except Exception as e:
-        print(f"\\nBLOCKED BY STEER: {e}")
-        print("Run 'steer ui' to fix the 'weather_bot'.")
+        print("[-] Status: Blocked")
+        print(f"Reason: {e}")
+"""
+
+# --- DEMO 4: SLOP GUARD (Brand Voice) ---
+DEMO_4_CONTENT = """from steer import capture, MockLLM
+from steer.verifiers import SlopVerifier
+
+slop_guard = SlopVerifier(name="Slop Filter")
+
+@capture(tags=["brand_voice_agent"], verifiers=[slop_guard])
+def get_system_status(query: str, steer_rules: str = ""):
+    print(f"Action: Generating response for '{query}'")
+    system_prompt = f"You are a helpful assistant.\\n{steer_rules}"
+    print(f"Context: {system_prompt.strip()}")
+    return MockLLM.call(system_prompt, query)
+
+if __name__ == "__main__":
+    print("--- Steer Demo: Slop Guard ---")
+    try:
+        get_system_status("Provide a status report on the server migration.")
+        print("[+] Status: Passed")
+    except Exception as e:
+        print("[-] Status: Blocked")
+        print(f"Reason: {e}")
 """
 
 def generate_demos():
     files = {
         "01_structure_guard.py": DEMO_1_CONTENT,
         "02_safety_guard.py": DEMO_2_CONTENT,
-        "03_logic_guard.py": DEMO_3_CONTENT
+        "03_logic_guard.py": DEMO_3_CONTENT,
+        "04_slop_guard.py": DEMO_4_CONTENT
     }
     
-    print("\nGenerating Steer examples...")
+    console.print("\n[bold green]Generating Steer examples...[/bold green]")
     for filename, content in files.items():
         if not os.path.exists(filename):
             with open(filename, "w") as f:
                 f.write(content)
-            print(f"  + Created {filename}")
+            console.print(f"  [green]+[/green] Created {filename}")
         else:
-            print(f"  - Skipped {filename} (exists)")
+            console.print(f"  [dim]- Skipped {filename} (exists)[/dim]")
             
-    print("\nReady. Run 'python 01_structure_guard.py' to start.")
+    console.print("\n[bold]Ready![/bold] Run [green]python 01_structure_guard.py[/green] to start.")
 
 def start_server(port=8000):
     url = f"http://localhost:{port}"
-    print(f"\nSteer Mission Control active at {url}")
-    print("Press Ctrl+C to stop\n")
+    console.print(f"\n[bold green]Steer Mission Control active at {url}[/bold green]")
+    console.print("[dim]Press Ctrl+C to stop[/dim]\n")
     try:
         webbrowser.open(url)
     except:
@@ -137,7 +148,8 @@ def main():
     
     # Arguments for the export command
     parser.add_argument("--format", default="openai", help="Export format (default: openai)")
-    parser.add_argument("--out", default="steer_fine_tune.jsonl", help="Output filename")
+    # FIX: Change default from "steer_fine_tune.jsonl" to None
+    parser.add_argument("--out", default=None, help="Output filename")
     
     args = parser.parse_args()
     
@@ -146,10 +158,10 @@ def main():
     elif args.command == "init":
         generate_demos()
     elif args.command == "export":
-        # Call the exporter function
+        # Now passing None allows exporter.py to choose steer_dpo_train.jsonl for dpo
         export_data(format_type=args.format, output_file=args.out)
     else:
-        console.print("[bold]Steer AI[/bold] - The Active Reliability Layer")
+        console.print("[bold]Steer[/bold] - The Active Reliability Layer")
         console.print("Run [green]steer init[/green] to generate examples.")
         console.print("Run [green]steer ui[/green] to start the dashboard.")
         console.print("Run [green]steer export[/green] to create fine-tuning data.")

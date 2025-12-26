@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/steer.png" alt="Steer Labs Logo" width="120">
+  <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/steer.png" alt="Steer Logo" width="120">
 </p>
 
 <p align="center">
-  <strong style="font-size: 2.5rem;">Steer</strong>
+  <b><font size="7">Steer</font></b>
 </p>
 
 <p align="center">
@@ -42,16 +42,18 @@
 
 ---
 
-## The Problem
+## The Problem: The Agent Lobotomy
 
-When an agent fails in production (e.g., outputs bad JSON), logging the error is insufficient. You typically have to:
+Most developers are forced to "lobotomize" their agents in production (stripping autonomy, hardcoding paths, and removing tools) because they cannot verify probabilistic output. When an agent fails, simply logging the error is insufficient. You are usually forced to:
 1. Dig through logs to find the specific prompt.
 2. Edit your prompt template manually.
-3. Redeploy the application.
+3. Redeploy the application to fix a single edge case.
 
-## The Solution
+## The Solution: Reality Locks
 
-Steer wraps your agent function with deterministic **Reality Locks**. When a failure is detected, Steer blocks the output and logs it to a local dashboard. You click **Teach** to provide a correction (e.g., "Use Strict JSON"), and Steer injects that rule into the agent context for future runs without a code change.
+Steer wraps your agent functions with deterministic **Reality Locks**. When a failure is detected, Steer blocks the output and logs it to a local dashboard. You provide a correction via the UI, and Steer injects that rule into the agent context at runtime without a code change.
+
+**Stop lobotomizing your agents.** Reality Locks allow you to keep the intelligence while the code enforces the boundaries.
 
 ## Installation
 
@@ -61,14 +63,23 @@ pip install steer-sdk
 
 ## Quickstart
 
-Generate the example scripts to see the workflow in action:
+Generate the example scripts to see the workflow in action.
+
+**Note: Ensure you run all commands from the same directory so the local database remains synced.**
 
 ```bash
 steer init
-# Generates 01_structure_guard.py, 02_safety_guard.py, 03_logic_guard.py, 04_slop_guard.py
+# Generates 01_structure_guard.py, 02_safety_guard.py, etc.
 
 steer ui
 # Starts the local dashboard at http://localhost:8000
+```
+
+**Run a demo (from the same folder used to run ui command):**
+
+1.  **Fail:** Run `python 01_structure_guard.py`. The output will show `[-] Status: Blocked`.
+2.  **Teach:** Go to `http://localhost:8000`. Click the red incident, select **Teach**, and save the **Strict JSON** rule.
+3.  **Fix:** Run `python 01_structure_guard.py` again. The output will now show `[+] Status: Passed`.
 ```
 
 ## Reality Locks in Action
@@ -100,7 +111,7 @@ The Steer workflow follows a simple loop: **Catch → Teach → Fix.**
 Explore the `cookbook/` directory for enterprise-grade implementations.
 
 ### RAG Reliability
-Demonstrates how to enforce strict data schemas and grounding citations in a Retrieval-Augmented Generation (RAG) pipeline.
+Demonstrates how to enforce strict data schemas and grounding citations in a RAG pipeline.
 * **Pydantic Schema Enforcement:** Ensuring the agent always returns a valid, typed data structure.
 * **Citation Verification:** Hard-locking the agent to cite its sources, preventing ungrounded claims.
 
@@ -108,51 +119,55 @@ Demonstrates how to enforce strict data schemas and grounding citations in a Ret
 
 ## Integration
 
-To add Steer to your own agent, add `steer_rules` to your function arguments. Steer populates this automatically based on your dashboard teaching.
+Add `steer_rules` to your function arguments. Steer populates this automatically via dependency injection.
 
 ```python
 from steer import capture
 from steer.verifiers import JsonVerifier
 
-# 1. Define Verifiers
+# 1. Define Reality Locks
 json_check = JsonVerifier(name="Strict JSON")
 
 # 2. Decorate your Agent Function
 @capture(verifiers=[json_check])
 def my_agent(user_input, steer_rules=""):
-    
-    # 3. Pass 'steer_rules' to your system prompt.
+    # Rules are injected automatically at runtime. 
+    # Update agent behavior from the dashboard without a code redeploy.
     system_prompt = f"You are a helpful assistant.\n{steer_rules}"
     
     # ... Your LLM call ...
     return llm.call(system_prompt, user_input)
 ```
 
-## Data Engine: From Guardrails to Fine-Tuning
+## Data Engine: Synthetic Data for DPO
 
-Every time a rule is applied or an agent succeeds, Steer logs the interaction. You can export these logs into a standard fine-tuning format (JSONL) compatible with OpenAI and Anthropic.
+Steer transforms runtime failures into a competitive asset. By capturing the delta between a **Blocked Response** (the hallucination) and the **Taught Response** (the correction), Steer generates contrastive pairs for Direct Preference Optimization (DPO).
 
 ### Export Training Data
-Run this command to convert local logs into a dataset:
+Run this command to generate a dataset ready for `trl`, `unsloth`, or OpenAI fine-tuning:
 
 ```bash
-steer export
+# Export successful runs for SFT
+steer export --format openai
+
+# Export contrastive pairs (Rejected vs Chosen) for DPO
+steer export --format dpo
 ```
 
-**Output:** `steer_fine_tune.jsonl`
+**DPO Output Schema:**
+```json
+{
+  "prompt": "Create admin profile for user u-8821",
+  "chosen": "{\n  \"id\": \"u-8821\",\n  \"status\": \"active\"\n}",
+  "rejected": "```json\n{\n  \"id\": \"u-8821\",\n  \"status\": \"active\"\n}\n```"
+}
+```
 
-### The Fine-Tuning Workflow
-1. **Capture:** Run your agent with Steer. Fix issues in the Dashboard.
-2. **Export:** Run `steer export` to generate the dataset.
-3. **Train:** Upload the file to your provider to fine-tune a model.
-4. **Remove:** Once the model learns the boundaries, you can often remove the guardrails.
+---
 
 ## What is the "Confident Idiot" Problem?
 
-The **Confident Idiot** is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence). LLMs fail silently and plausibly.
-
-* **Example:** User asks "Weather in Springfield". The agent confidently guesses "Springfield, IL" (ignoring the fact that there are 33 other Springfields in the USA).
-* **The Fix:** Steer prevents this by enforcing **Reality Locks** (deterministic checks) that run after generation but before the user sees the response.
+The Confident Idiot is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence). Because LLMs fail silently and plausibly, traditional observability is insufficient. Steer provides the verification layer to catch these failures before they hit your users.
 
 [Read the viral discussion on Hacker News.](https://news.ycombinator.com/item?id=46152838)
 

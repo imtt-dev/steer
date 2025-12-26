@@ -5,61 +5,102 @@ from .config import settings
 
 console = Console()
 
-def export_data(format_type: str = "openai", output_file: str = "steer_fine_tune.jsonl"):
+def export_data(format_type: str = "openai", output_file: str = None):
     """
-    Reads local Steer logs and converts successful runs into fine-tuning data.
+    Reads local Steer logs and converts them into fine-tuning datasets.
+    Supported formats: 
+    - 'openai': Standard SFT (Successes only)
+    - 'dpo': Contrastive pairs (Rejected vs Chosen)
     """
     log_path = settings.log_file
     if not log_path.exists():
         console.print("[red]No logs found. Run some agents first.[/red]")
         return
 
-    exported_count = 0
-    
-    console.print(f"[dim]Reading local logs from {log_path}...[/dim]")
+    count = 0
+    if format_type == "dpo":
+        final_output = output_file or "steer_dpo_train.jsonl"
+        count = _export_dpo(log_path, final_output)
+    else:
+        final_output = output_file or "steer_fine_tune.jsonl"
+        count = _export_sft(log_path, final_output)
 
-    with open(output_file, 'w', encoding='utf-8') as out_f:
-        with open(log_path, 'r', encoding='utf-8') as in_f:
-            for line in in_f:
+    if count > 0:
+        console.print(f"[bold green]Successfully exported {count} training examples.[/bold green]")
+        console.print(f"File created: [bold]{final_output}[/bold]")
+        console.print("[dim]IMPORTANT: Review this file before use to ensure no PII is included.[/dim]")
+        
+        # Ensure the community hook is always called
+        _print_community_hook()
+    else:
+        console.print("[yellow]No valid data pairs found to export.[/yellow]")
+
+def _export_sft(log_path, output_file):
+    """Standard Supervised Fine-Tuning: Exports verified successful runs."""
+    count = 0
+    with open(output_file, 'w', encoding='utf-8') as out:
+        with open(log_path, 'r', encoding='utf-8') as f:
+            for line in f:
                 try:
                     record = json.loads(line)
-                    
-                    # LOGIC: Export "Golden Data"
-                    # We export runs that passed verification. This provides the volume 
-                    # needed for fine-tuning a model to behave correctly by default.
-                    trace = record.get('trace', [])
-                    is_blocked = any(step.get('type') == 'error' for step in trace)
-                    
-                    if not is_blocked:
+                    if not _is_blocked(record):
                         user_content = _extract_input(record)
                         assistant_content = record.get('raw_outputs', '')
-
+                        
                         if user_content and assistant_content:
-                            # OpenAI Chat Format
                             example = {
                                 "messages": [
-                                    {"role": "system", "content": f"You are a helpful agent. Context: {record.get('agent_name', 'default')}"},
+                                    {"role": "system", "content": f"Agent: {record.get('agent_name', 'default')}"},
                                     {"role": "user", "content": user_content},
                                     {"role": "assistant", "content": assistant_content}
                                 ]
                             }
-                            out_f.write(json.dumps(example) + "\n")
-                            exported_count += 1
-                except Exception as e:
+                            out.write(json.dumps(example) + "\n")
+                            count += 1
+                except:
                     continue
+    return count
 
-    if exported_count > 0:
-        console.print(f"[bold green]Successfully exported {exported_count} training examples.[/bold green]")
-        console.print(f"File created: [bold]{output_file}[/bold]")
-        console.print("[dim]IMPORTANT: Review this file before uploading to OpenAI to ensure no PII/sensitive data is included.[/dim]")
-        
-        # New Community Hook (No email, just value)
-        _print_community_hook()
-    else:
-        console.print("[yellow]No successful runs found to export.[/yellow]")
+def _export_dpo(log_path, output_file):
+    """Contrastive Pairs: Groups a failed run with its subsequent successful fix."""
+    history = {} # prompt -> {rejected: str, chosen: str}
+    
+    with open(log_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            try:
+                record = json.loads(line)
+                prompt = _extract_input(record)
+                output = record.get('raw_outputs', '')
+                
+                if prompt not in history:
+                    history[prompt] = {"rejected": None, "chosen": None}
+                
+                if _is_blocked(record):
+                    history[prompt]["rejected"] = output
+                else:
+                    history[prompt]["chosen"] = output
+            except:
+                continue
+
+    count = 0
+    with open(output_file, 'w', encoding='utf-8') as out:
+        for prompt, pairs in history.items():
+            if pairs['chosen'] and pairs['rejected']:
+                example = {
+                    "prompt": prompt,
+                    "chosen": pairs['chosen'],
+                    "rejected": pairs['rejected']
+                }
+                out.write(json.dumps(example) + "\n")
+                count += 1
+    return count
+
+def _is_blocked(record: dict) -> bool:
+    """Checks if a run was blocked by a verifier."""
+    return any(step.get('type') == 'error' for step in record.get('trace', []))
 
 def _extract_input(record: dict) -> str:
-    """Helper to get a clean user prompt string from the raw logs."""
+    """Extracts the user prompt string from the trace or raw arguments."""
     trace = record.get('trace', [])
     for step in trace:
         if step.get('type') == 'user':
@@ -69,15 +110,15 @@ def _extract_input(record: dict) -> str:
     if raw_args:
         return str(raw_args[0])
         
-    return "Unknown Input"
+    return ""
 
 def _print_community_hook():
     """
-    Directs users to GitHub Discussions for community support.
+    Directs users to GitHub Discussions for community support and sharing results.
     """
     console.print("\n" + "-"*60)
-    console.print("Fine-tuning data is ready.")
-    console.print("This format is compatible with OpenAI and Anthropic fine-tuning APIs.")
-    console.print("\nQuestions or feedback on results?")
+    console.print("[bold]Next Step: Model Improvement[/bold]")
+    console.print("This data is ready for fine-tuning via OpenAI, Anthropic, or DPO (trl/unsloth).")
+    console.print("\nHave questions or want to share your results?")
     console.print("👉 Join the community: [link=https://github.com/imtt-dev/steer/discussions]https://github.com/imtt-dev/steer/discussions[/link]")
     console.print("-" * 60)
