@@ -215,3 +215,27 @@ class SlopVerifier(BaseVerifier):
             )
         ]
         return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+
+class SqlVerifier(BaseVerifier):
+    """
+    Prevents destructive or unauthorized SQL commands in agent outputs.
+    """
+    def __init__(self, name: str = "SQL Security Lock"):
+        self.name = name
+        self.forbidden = [r"drop\s+table", r"delete\s+from", r"truncate", r"insert\s+into"]
+
+    def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
+        query = str(output).lower()
+        for pattern in self.forbidden:
+            if re.search(pattern, query):
+                fixes = [
+                    TeachingOption(
+                        title="Read-Only Mode",
+                        description="Force agent to only use SELECT statements.",
+                        logic_change="SECURITY PROTOCOL: You are a read-only analyst. Only generate SELECT queries. Never use DROP, DELETE, or INSERT."
+                    )
+                ]
+                return VerificationResult(verifier_name=self.name, passed=False, 
+                                        reason=f"Forbidden SQL command detected: {pattern}", 
+                                        suggested_fixes=fixes)
+        return VerificationResult(verifier_name=self.name, passed=True)

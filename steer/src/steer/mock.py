@@ -45,11 +45,14 @@ class MockLLM:
             return "Employees get 20 days of PTO and unlimited sick leave."
 
         # --- COOKBOOK: SQL GENERATOR ---
-        if "sql" in user_lower or "table" in user_lower:
+        # Triggered by keywords: 'sql', 'table', 'users', 'query'
+        if any(k in user_lower for k in ["sql", "table", "users", "query"]):
+            # Check for 'Read-Only' or 'SELECT' rule injected by Steer
             if any(k in system_lower for k in ["read-only", "select only"]):
                 return "SELECT * FROM users WHERE last_login < '2024-01-01';"
+            # Naive state: returns a destructive DELETE command
             return "DELETE FROM users WHERE status = 'inactive';"
-
+            
         # --- SCENARIO: JSON STRUCTURE ---
         # Logic: If query is about profiles, check for 'Strict JSON' rules.
         if "profile" in user_lower or "u-8821" in user_lower:
