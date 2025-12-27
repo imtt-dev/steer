@@ -25,14 +25,16 @@ class MockLLM:
         system_lower = system_prompt.lower()
         user_lower = user_prompt.lower()
         
-        # --- SCENARIO: BRAND VOICE / DE-SLOPPING ---
-        # Logic: Catch AI fingerprints like em dashes, emojis, and sycophancy.
+         # --- SCENARIO: BRAND VOICE / DE-SLOPPING ---
         if any(k in user_lower for k in ["status", "migration", "report"]):
-            if any(k in system_lower for k in ["anti-slop", "blunt", "short sentences", "purify"]):
+            # TRIGGER KEYWORDS: Updated to match the new clinical "Anti-Slop" rule
+            if any(k in system_lower for k in ["protocol override", "sycophancy", "high-entropy", "purify", "blunt"]):
                 # Learned state: Blunt, professional, no slop
                 return "The server migration is complete. 1240 records moved."
-            # Naive state: Heavy on "AI-voice" fingerprints (em dash, emoji, sycophancy)
+            
+            # Naive state: Heavy on "AI-voice" fingerprints
             return "I would be happy to delve into the status for you! The migration is seamlessly complete—1240 records were moved. 🚀"
+
 
         # --- SCENARIO: RAG / HR POLICY ---
         # Logic: If query is about HR, check for 'grounding' or 'schema' rules.
@@ -52,7 +54,7 @@ class MockLLM:
                 return "SELECT * FROM users WHERE last_login < '2024-01-01';"
             # Naive state: returns a destructive DELETE command
             return "DELETE FROM users WHERE status = 'inactive';"
-            
+
         # --- SCENARIO: JSON STRUCTURE ---
         # Logic: If query is about profiles, check for 'Strict JSON' rules.
         if "profile" in user_lower or "u-8821" in user_lower:

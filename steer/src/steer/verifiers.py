@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Type
 import json
 import re
+from collections import Counter
 from pydantic import BaseModel, ValidationError
 from .schemas import VerificationResult, TeachingOption
 from .llm import Judge
@@ -181,8 +182,14 @@ class FactConsistencyVerifier(BaseVerifier):
         return VerificationResult(verifier_name=self.name, passed=passed, reason=eval_res.get("reason"), suggested_fixes=fixes)
 
 class SlopVerifier(BaseVerifier):
-    def __init__(self, name="Slop Filter"):
+    """
+    Purifies the agent signal by blocking low-entropy AI slop and 
+    common RLHF fingerprints.
+    """
+    def __init__(self, name: str = "Slop Filter", entropy_threshold: float = 3.5):
         self.name = name
+        self.entropy_threshold = entropy_threshold
+        # Predictable RLHF linguistic patterns
         self.slop_patterns = [
             r"i apologize for",
             r"as an ai",
@@ -192,26 +199,56 @@ class SlopVerifier(BaseVerifier):
             r"comprehensive guide",
             r"revolutionary",
             r"seamlessly",
-            r"unlock the potential"
+            r"unlock the potential",
+            r"tapestry of",
+            r"not only.*but also"
         ]
 
+    def _calculate_entropy(self, text: str) -> float:
+        """
+        Calculates Shannon Entropy based on character frequency.
+        Higher = more varied (human). Lower = more predictable (AI slop).
+        """
+        if not text:
+            return 0.0
+        counts = Counter(text)
+        total = len(text)
+        return -sum((count / total) * math.log2(count / total) for count in counts.values())
+
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
-        text = str(output).lower()
-        if any(char for char in str(output) if char in "🚀🤖🧠✨⚡️"):
+        text_raw = str(output)
+        text_lower = text_raw.lower()
+
+        # 1. Emoji / Protocol Check
+        if any(char for char in text_raw if char in "🚀🤖🧠✨⚡️"):
             return self._fail("Detected emoji slop.")
-        if "—" in str(output):
-            return self._fail("Detected em dash slop.")
+
+        # 2. Formatting Check (AI Em-dash fingerprint)
+        if "—" in text_raw:
+            return self._fail("Detected em dash formatting slop.")
+
+        # 3. Deterministic Pattern Check
         for pattern in self.slop_patterns:
-            if re.search(pattern, text):
-                return self._fail(f"Detected AI fingerprint: '{pattern}'")
+            if re.search(pattern, text_lower):
+                return self._fail(f"Detected AI linguistic fingerprint: '{pattern}'")
+
+        # 4. Shannon Entropy Check
+        # Human technical prose typically sits above 4.0. 
+        # Over-optimized AI output often dips below 3.5.
+        if len(text_raw) > 60:
+            entropy = self._calculate_entropy(text_raw)
+            if entropy < self.entropy_threshold:
+                return self._fail(f"Low entropy detected ({entropy:.2f}). Signal is too predictable.")
+
         return VerificationResult(verifier_name=self.name, passed=True)
 
     def _fail(self, reason: str) -> VerificationResult:
         fixes = [
             TeachingOption(
                 title="Purify Signal",
-                description="Remove apologies, em dashes, and hype.",
-                logic_change="ANTI-SLOP PROTOCOL: Use short, blunt sentences. No emojis. No em dashes. Never apologize. Just provide the raw data."
+                description="Enforce high-density, high-entropy human signal.",
+                recommended=True,
+                logic_change="PROTOCOL OVERRIDE: Eliminate sycophancy. No apologies. No hedging. Use high-entropy, technical prose. Output raw data only."
             )
         ]
         return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
