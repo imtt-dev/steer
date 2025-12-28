@@ -99,7 +99,7 @@ slop_guard = SlopVerifier(name="Slop Filter")
 @capture(tags=["brand_voice_agent"], verifiers=[slop_guard])
 def get_system_status(query: str, steer_rules: str = ""):
     print(f"Action: Generating response for '{query}'")
-    system_prompt = f"You are a helpful assistant.\\n{steer_rules}"
+    system_prompt = f"You are a systems reporting service. Output raw status data.\\n{steer_rules}"
     print(f"Context: {system_prompt.strip()}")
     return MockLLM.call(system_prompt, query)
 

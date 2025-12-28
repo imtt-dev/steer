@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/steer.png" alt="Steer Logo" width="120">
+  <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/steer.png" alt="Steer Labs Logo" width="120">
 </p>
 
 <p align="center">
@@ -15,8 +15,8 @@
 </p>
 
 <p align="center">
-  Stop debugging. Start teaching. <br>
-  Steer turns runtime hallucinations into permanent fixes instantly.
+  Stop fixing probability with more probability. <br>
+  Intercept hallucinations, malformed JSON, and protocol drift in runtime.
 </p>
 
 <p align="center">
@@ -37,36 +37,36 @@
   <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/dashboard-hero.png" alt="Steer Mission Control" width="100%">
 </p>
 <p align="center">
-  <em>Mission Control: Catching hallucinations locally and fixing them with one click.</em>
+  <em>Mission Control: Enforcing deterministic truth on probabilistic model outputs.</em>
 </p>
 
 ---
 
 ## The Problem: The Agent Lobotomy
 
-Most developers are forced to "lobotomize" their agents in production (stripping autonomy, hardcoding paths, and removing tools) because they cannot verify probabilistic output. When an agent fails, simply logging the error is insufficient. You are usually forced to:
-1. Dig through logs to find the specific prompt.
-2. Edit your prompt template manually.
-3. Redeploy the application to fix a single edge case.
+Most developers are forced to cripple their agents in production (stripping autonomy and hardcoding paths) because they cannot verify probabilistic output. When an agent fails, simply logging the error is insufficient. You are stuck in a prompt-deploy death loop:
+1. Grep production logs for specific input/output pairs.
+2. Manually adjust prompts and hope for no regressions.
+3. Redeploy the entire application for a single instruction update.
 
 ## The Solution: Reality Locks
 
-Steer wraps your agent functions with deterministic **Reality Locks**. When a failure is detected, Steer blocks the output and logs it to a local dashboard. You provide a correction via the UI, and Steer injects that rule into the agent context at runtime without a code change.
+Steer wraps agent functions with deterministic **Reality Locks**. When a failure is detected (JSON syntax error, PII leak, or logic violation), Steer blocks the output and triggers a local "Teachable Moment" UI. You provide a correction, and Steer injects that rule into the agent context at runtime without a code redeploy.
 
 **Stop lobotomizing your agents.** Reality Locks allow you to keep the intelligence while the code enforces the boundaries.
 
 ## Operational Resilience
 
 Steer is architected for mission-critical production environments:
-* **Low-Latency Sidecar:** Steer adds <5ms latency per verification. It runs in-process with your agent, requiring no external network hops.
-* **Fail-Safe Architecture:** Steer is designed to fail-safe. If the library encounters an internal error, it defaults to your configured policy to ensure system uptime.
-* **Stateless by Design:** Steer uses local memory and file-based logging, making it compatible with serverless (Lambda) and containerized (K8s) environments.
+* **Low-Latency Sidecar:** Verification adds <5ms overhead by running in-process.
+* **Fail-Safe Design:** Configurable behavior for internal library errors to prioritize uptime.
+* **Stateless by Design:** Compatible with serverless (Lambda) and containerized (K8s) environments.
 
 ## Privacy & Security
 
-* **Zero Data Exfiltration:** Steer is Local-First. Traces, prompts, and tool-outputs never leave your infrastructure. Verification happens entirely on your compute.
-* **Audit-Ready Logging:** Every blocked response is logged with a deterministic reason code for compliance and security audits.
-* **Deterministic Integrity:** Steer uses hard-coded assertions (Regex, AST, Pydantic), eliminating the risk of "Verifier Hallucination" common in LLM-as-a-judge setups.
+* **Zero Data Exfiltration:** Local-first architecture. Traces and prompts never leave your network.
+* **Audit-Ready Logging:** Every blocked response is logged with a deterministic reason code for compliance.
+* **No Vibe-Checks:** Verification is code-based (Regex, AST, Pydantic), eliminating verifier hallucinations.
 
 ## Installation
 
@@ -76,88 +76,69 @@ pip install steer-sdk
 
 ## Quickstart
 
-Generate the example scripts to see the workflow in action.
-
-**Note: Ensure you run all commands from the same directory so the local database remains synced.**
+Ensure you run all commands from the same directory to keep the local database synced.
 
 ```bash
-steer init
-# Generates 01_structure_guard.py, 02_safety_guard.py, 03_logic_guard.py, 04_slop_guard.py
-
-steer ui
-# Starts the local dashboard at http://localhost:8000
+steer init   # Generates 01_structure_guard.py, 02_safety_guard.py, etc.
+steer ui     # Launches Mission Control at http://localhost:8000
 ```
 
-**Run a demo (from the same folder):**
-
-1. **Fail:** Run `python 01_structure_guard.py`. Output will show `[-] Status: Blocked`.
-2. **Teach:** Go to `http://localhost:8000`. Click the incident, select **Teach**, and save the rule.
-3. **Fix:** Run `python 01_structure_guard.py` again. Output will show `[+] Status: Passed`.
+1. **Fail:** Run `python 01_structure_guard.py`. Output shows `[-] Status: Blocked`.
+2. **Teach:** Go to the UI. Click the incident, select **Teach**, and save the rule.
+3. **Fix:** Run the script again. Output shows `[+] Status: Passed`.
 
 ## Reality Locks in Action
 
-The Steer workflow follows a simple loop: **Catch → Teach → Fix.**
-
 ### 1. Structure Guard (JSON)
 **Problem:** Agent wraps JSON in Markdown backticks, breaking your parser.
-**Fix:** Block the output and enforce raw JSON formatting.
+**Fix:** Block the output and enforce raw JSON formatting via the dashboard.
 ![Structure Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_json.gif)
 
 ### 2. Safety Guard (PII)
-**Problem:** Agent accidentally leaks customer emails or internal keys.
-**Fix:** Block the response and enforce redaction protocols.
+**Problem:** Agent accidentally leaks customer emails or internal keys despite system instructions.
+**Fix:** Block the response and enforce redaction protocols across all agent outputs.
 ![Safety Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_pii.gif)
 
 ### 3. Logic Guard (Ambiguity)
-**Problem:** Agent guesses a city (e.g., Springfield, IL) instead of asking for clarification.
-**Fix:** Force the agent to ask the user clarifying questions.
+**Problem:** Agent guesses an ambiguous city (e.g., Springfield, IL) instead of asking for clarification.
+**Fix:** Force the agent to ask the user clarifying questions when tool results are non-unique.
 ![Logic Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_logic.gif)
 
 ### 4. Slop Filter (Brand Voice)
-**Problem:** Agent uses "AI-voice" (emojis, em dashes, apologies) that signals uncurated slop.
-**Fix:** Block LLM fingerprints and enforce a blunt, professional signal.
+**Problem:** Agent uses sycophantic "AI-voice" (emojis, em-dashes, apologies) that pollutes data protocols.
+**The Tech:** Uses Shannon Entropy to measure signal density. If the response is over-smoothed (low entropy), Steer identifies it as an aesthetic lobotomy and blocks the signal.
 ![Slop Filter Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_slop.gif)
 
 ## Cookbook
 
 Explore the `cookbook/` directory for enterprise-grade implementations.
 
-### RAG Reliability
-Enforce strict data schemas and grounding citations in a RAG pipeline.
-* [View RAG Cookbook](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/rag_reliability.py)
+* [RAG Reliability](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/rag_reliability.py): Enforcing strict schemas and grounding citations.
+* [SQL Security](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/sql_reliability.py): Enforcing read-only protocols and preventing destructive injections.
 
-### SQL Security
-Enforce read-only protocols and prevent destructive SQL injections in analytics agents.
-* [View SQL Cookbook](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/sql_reliability.py)
+## Integration: Sidecar Dependency Injection
 
-## Integration
-
-Add `steer_rules` to your function arguments. Steer populates this automatically via dependency injection.
+Add `steer_rules` to your function arguments. Steer populates this automatically at runtime.
 
 ```python
 from steer import capture
-from steer.verifiers import JsonVerifier
+from steer.verifiers import JsonVerifier, SlopVerifier
 
-# 1. Define Reality Locks
-json_check = JsonVerifier(name="Strict JSON")
+locks = [JsonVerifier(), SlopVerifier(entropy_threshold=3.5)]
 
-# 2. Decorate your Agent Function
-@capture(verifiers=[json_check])
-def my_agent(user_input, steer_rules=""):
-    # Rules are injected automatically at runtime. 
-    # Update agent behavior from the dashboard without a code redeploy.
-    system_prompt = f"You are a helpful assistant.\n{steer_rules}"
-    
-    # ... Your LLM call ...
-    return llm.call(system_prompt, user_input)
+@capture(verifiers=locks)
+def finance_agent(query, steer_rules=""):
+    # Rules are injected automatically. 
+    # Update agent behavior via local UI without a code redeploy.
+    system = f"You are a read-only SQL analyst.\n{steer_rules}"
+    return model.generate(system, query)
 ```
 
 ## Data Engine: Synthetic Data for DPO
 
-Steer transforms runtime failures into a competitive asset. By capturing the delta between a Blocked Response (the hallucination) and the Taught Response (the correction), Steer generates contrastive pairs for Direct Preference Optimization (DPO).
+Steer transforms runtime failures into a training asset. By capturing the delta between a **Blocked Response** (Rejected) and a **Taught Response** (Chosen), Steer generates contrastive pairs for Direct Preference Optimization (DPO).
 
 ### Export Training Data
-Run this command to generate a dataset ready for `trl`, `unsloth`, or OpenAI fine-tuning:
 
 ```bash
 # Export successful runs for SFT
@@ -167,29 +148,18 @@ steer export --format openai
 steer export --format dpo
 ```
 
-**DPO Output Schema:**
-```json
-{
-  "prompt": "Create admin profile for user u-8821",
-  "chosen": "{\n  \"id\": \"u-8821\",\n  \"status\": \"active\"\n}",
-  "rejected": "```json\n{\n  \"id\": \"u-8821\",\n  \"status\": \"active\"\n}\n```"
-}
-```
+## Production-Ready Checklist
 
----
+- [x] **Pydantic v2 Compatible:** Built on high-performance serialization.
+- [x] **Thread-Safe:** Tested for high-concurrency production environments.
+- [x] **Zero Dependencies:** Minimal footprint to reduce supply-chain risk.
+- [x] **Local-First:** No external API dependencies for core verification logic.
 
 ## What is the "Confident Idiot" Problem?
 
 The Confident Idiot is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence). Because LLMs fail silently and plausibly, traditional observability is insufficient. Steer provides the verification layer to catch these failures before they hit your users.
 
 [Read the viral discussion on Hacker News.](https://news.ycombinator.com/item?id=46152838)
-
-## Production-Ready Checklist
-
-- [x] **Pydantic v2 Compatible:** Built on high-performance serialization.
-- [x] **Thread-Safe:** Tested for high-concurrency environments.
-- [x] **Zero Dependencies:** Minimal footprint to reduce supply-chain risk.
-- [x] **Local-First:** No external API dependencies for core verification.
 
 ## Star History
 

@@ -5,10 +5,10 @@ class MockLLM:
     """
     SIMULATION ENGINE - NOT A REAL LLM.
     
-    This class is a deterministic state machine used for Steer's interactive 
-    demos and cookbooks. It allows developers to test the 'Catch-Teach-Fix' 
-    workflow without requiring API keys or incurring LLM costs.
-
+    A deterministic simulator for Steer demos. 
+    I built this to test 'Catch-Teach-Fix' loops without API costs or latency.
+    It identifies keywords in system_prompt to simulate model correction.
+    
     HOW IT WORKS:
     1. It mimics a 'Naive' model by returning problematic output by default.
     2. It inspects the 'system_prompt' for specific keywords injected by Steer.

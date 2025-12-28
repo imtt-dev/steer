@@ -114,11 +114,11 @@ def _extract_input(record: dict) -> str:
 
 def _print_community_hook():
     """
-    Directs users to GitHub Discussions for community support and sharing results.
+    Directs users to GitHub Discussions for technical support.
     """
     console.print("\n" + "-"*60)
-    console.print("[bold]Next Step: Model Improvement[/bold]")
-    console.print("This data is ready for fine-tuning via OpenAI, Anthropic, or DPO (trl/unsloth).")
-    console.print("\nHave questions or want to share your results?")
-    console.print("👉 Join the community: [link=https://github.com/imtt-dev/steer/discussions]https://github.com/imtt-dev/steer/discussions[/link]")
+    console.print("Fine-tuning dataset generated.")
+    console.print("Format: JSONL (OpenAI/Anthropic compatible)")
+    console.print("\nTechnical feedback or results sharing:")
+    console.print("https://github.com/imtt-dev/steer/discussions")
     console.print("-" * 60)

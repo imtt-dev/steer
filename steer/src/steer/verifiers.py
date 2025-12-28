@@ -125,7 +125,7 @@ class CitationVerifier(BaseVerifier):
             fixes = [
                 TeachingOption(
                     title="Require Citations",
-                    description="Enforce grounded claims.",
+                    description="GROUNDING: Factual claims require bracketed citations [doc n]. If context is missing, return 'Unknown'",
                     recommended=True,
                     logic_change="GROUNDING RULE: Every factual claim must be followed by a citation in brackets, e.g., [doc 1]. If the context does not contain the answer, state that you do not know."
                 )
@@ -269,7 +269,7 @@ class SqlVerifier(BaseVerifier):
                     TeachingOption(
                         title="Read-Only Mode",
                         description="Force agent to only use SELECT statements.",
-                        logic_change="SECURITY PROTOCOL: You are a read-only analyst. Only generate SELECT queries. Never use DROP, DELETE, or INSERT."
+                        logic_change="PROTOCOL: SELECT only. Deny DROP, DELETE, or TRUNCATE."
                     )
                 ]
                 return VerificationResult(verifier_name=self.name, passed=False, 
