@@ -15,8 +15,8 @@
 </p>
 
 <p align="center">
-  Stop fixing probability with more probability. <br>
-  Intercept hallucinations, malformed JSON, and protocol drift in runtime.
+  Intercept hallucinations and protocol drift in runtime. <br>
+  Enforce deterministic truth on probabilistic model outputs.
 </p>
 
 <p align="center">
@@ -42,31 +42,27 @@
 
 ---
 
+## Why Steer?
+
+Because you cannot fix probability with more probability. Steer provides the "Hard Rules" (Deterministic Verification) required to ship complex agents without performing an **Agent Lobotomy**.
+
 ## The Problem: The Agent Lobotomy
 
-Most developers are forced to cripple their agents in production (stripping autonomy and hardcoding paths) because they cannot verify probabilistic output. When an agent fails, simply logging the error is insufficient. You are stuck in a prompt-deploy death loop:
+Most developers are forced to cripple their agents in production (stripping autonomy and hardcoding paths) because they cannot verify probabilistic output. When an agent fails, simply logging the error is insufficient. You are usually stuck in a prompt-deploy death loop:
 1. Grep production logs for specific input/output pairs.
 2. Manually adjust prompts and hope for no regressions.
 3. Redeploy the entire application for a single instruction update.
 
 ## The Solution: Reality Locks
 
-Steer wraps agent functions with deterministic **Reality Locks**. When a failure is detected (JSON syntax error, PII leak, or logic violation), Steer blocks the output and triggers a local "Teachable Moment" UI. You provide a correction, and Steer injects that rule into the agent context at runtime without a code redeploy.
-
-**Stop lobotomizing your agents.** Reality Locks allow you to keep the intelligence while the code enforces the boundaries.
+Steer wraps agent functions with deterministic **Reality Locks**. When a failure is detected (JSON syntax error, PII leak, or logic violation), Steer blocks the output and triggers a local "Teachable Moment" UI. You provide a correction, and Steer injects that rule into the agent context at runtime via sidecar dependency injection.
 
 ## Operational Resilience
 
-Steer is architected for mission-critical production environments:
 * **Low-Latency Sidecar:** Verification adds <5ms overhead by running in-process.
 * **Fail-Safe Design:** Configurable behavior for internal library errors to prioritize uptime.
-* **Stateless by Design:** Compatible with serverless (Lambda) and containerized (K8s) environments.
-
-## Privacy & Security
-
 * **Zero Data Exfiltration:** Local-first architecture. Traces and prompts never leave your network.
-* **Audit-Ready Logging:** Every blocked response is logged with a deterministic reason code for compliance.
-* **No Vibe-Checks:** Verification is code-based (Regex, AST, Pydantic), eliminating verifier hallucinations.
+* **Audit-Ready Logging:** Deterministic logs provide a clear trail for compliance audits.
 
 ## Installation
 
@@ -79,7 +75,7 @@ pip install steer-sdk
 Ensure you run all commands from the same directory to keep the local database synced.
 
 ```bash
-steer init   # Generates 01_structure_guard.py, 02_safety_guard.py, etc.
+steer init   # Generates interactive demo agents
 steer ui     # Launches Mission Control at http://localhost:8000
 ```
 
@@ -89,24 +85,23 @@ steer ui     # Launches Mission Control at http://localhost:8000
 
 ## Reality Locks in Action
 
+The Steer workflow follows a simple loop: **Catch -> Teach -> Fix.**
+
 ### 1. Structure Guard (JSON)
 **Problem:** Agent wraps JSON in Markdown backticks, breaking your parser.
-**Fix:** Block the output and enforce raw JSON formatting via the dashboard.
 ![Structure Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_json.gif)
 
 ### 2. Safety Guard (PII)
 **Problem:** Agent accidentally leaks customer emails or internal keys despite system instructions.
-**Fix:** Block the response and enforce redaction protocols across all agent outputs.
 ![Safety Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_pii.gif)
 
 ### 3. Logic Guard (Ambiguity)
 **Problem:** Agent guesses an ambiguous city (e.g., Springfield, IL) instead of asking for clarification.
-**Fix:** Force the agent to ask the user clarifying questions when tool results are non-unique.
 ![Logic Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_logic.gif)
 
 ### 4. Slop Filter (Brand Voice)
 **Problem:** Agent uses sycophantic "AI-voice" (emojis, em-dashes, apologies) that pollutes data protocols.
-**The Tech:** Uses Shannon Entropy to measure signal density. If the response is over-smoothed (low entropy), Steer identifies it as an aesthetic lobotomy and blocks the signal.
+**The Tech:** Measures Shannon Entropy of the response. If the signal is too smooth (low entropy), Steer identifies it as an aesthetic lobotomy and blocks the output.
 ![Slop Filter Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_slop.gif)
 
 ## Cookbook
@@ -151,7 +146,7 @@ steer export --format dpo
 ## Production-Ready Checklist
 
 - [x] **Pydantic v2 Compatible:** Built on high-performance serialization.
-- [x] **Thread-Safe:** Tested for high-concurrency production environments.
+- [x] **Thread-Safe:** Tested for high-concurrency environments.
 - [x] **Zero Dependencies:** Minimal footprint to reduce supply-chain risk.
 - [x] **Local-First:** No external API dependencies for core verification logic.
 
@@ -160,7 +155,3 @@ steer export --format dpo
 The Confident Idiot is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence). Because LLMs fail silently and plausibly, traditional observability is insufficient. Steer provides the verification layer to catch these failures before they hit your users.
 
 [Read the viral discussion on Hacker News.](https://news.ycombinator.com/item?id=46152838)
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=imtt-dev/steer&type=date&legend=top-left)](https://www.star-history.com/#imtt-dev/steer&type=date&legend=top-left)
