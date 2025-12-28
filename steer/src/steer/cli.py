@@ -12,7 +12,7 @@ console = Console()
 # --- DEMO 1: USER PROFILE AGENT (JSON Structure) ---
 DEMO_1_CONTENT = """import json
 from steer import capture, MockLLM
-from steer.Judges import JsonJudge
+from steer.judges import JsonJudge
 
 json_guard = JsonJudge(name="Strict JSON")
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
 # --- DEMO 2: SUPPORT BOT (Privacy) ---
 DEMO_2_CONTENT = """from steer import capture, MockLLM
-from steer.Judges import RegexJudge
+from steer.judges import RegexJudge
 
 email_guard = RegexJudge(
     name="PII Shield",
@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
 # --- DEMO 3: WEATHER BOT (Logic) ---
 DEMO_3_CONTENT = """from steer import capture, MockLLM
-from steer.Judges import AmbiguityJudge
+from steer.judges import AmbiguityJudge
 
 logic_guard = AmbiguityJudge(
     name="Ambiguity Check",
@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
 # --- DEMO 4: SLOP GUARD (Brand Voice) ---
 DEMO_4_CONTENT = """from steer import capture, MockLLM
-from steer.Judges import SlopJudge
+from steer.judges import SlopJudge
 
 slop_guard = SlopJudge(name="Slop Filter")
 
