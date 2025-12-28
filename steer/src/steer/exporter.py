@@ -96,7 +96,7 @@ def _export_dpo(log_path, output_file):
     return count
 
 def _is_blocked(record: dict) -> bool:
-    """Checks if a run was blocked by a verifier."""
+    """Checks if a run was blocked by a Judge."""
     return any(step.get('type') == 'error' for step in record.get('trace', []))
 
 def _extract_input(record: dict) -> str:

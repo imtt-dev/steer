@@ -46,7 +46,7 @@
 
 I built Steer because probability cannot fix probability. It provides deterministic verification in runtime and automates DPO data collection. 
 
-When a verifier blocks an output and I provide a fix, Steer captures a Rejected/Chosen contrastive pair. I use these production failures to generate the datasets required to refactor a prompt monolith into model weights. This moves reliability from the context window to the model itself.
+When a Judge blocks an output and I provide a fix, Steer captures a Rejected/Chosen contrastive pair. I use these production failures to generate the datasets required to refactor a prompt monolith into model weights. This moves reliability from the context window to the model itself.
 
 ## The Problem: The Agent Lobotomy
 
@@ -119,11 +119,11 @@ Add `steer_rules` to your function arguments. Steer populates this automatically
 
 ```python
 from steer import capture
-from steer.verifiers import JsonVerifier, SlopVerifier
+from steer.Judges import JsonJudge, SlopJudge
 
-locks = [JsonVerifier(), SlopVerifier(entropy_threshold=3.5)]
+locks = [JsonJudge(), SlopJudge(entropy_threshold=3.5)]
 
-@capture(verifiers=locks)
+@capture(Judges=locks)
 def finance_agent(query, steer_rules=""):
     # Rules are injected automatically. 
     # Update agent behavior via local UI without a code redeploy.

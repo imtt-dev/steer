@@ -1,10 +1,10 @@
 import json
 from steer import capture, MockLLM
-from steer.verifiers import JsonVerifier
+from steer.judges import JsonJudge
 
-json_guard = JsonVerifier(name="Strict JSON")
+json_guard = JsonJudge(name="Strict JSON")
 
-@capture(tags=["profile_generator"], verifiers=[json_guard])
+@capture(tags=["profile_generator"], Judges=[json_guard])
 def generate_profile(request: str, steer_rules: str = ""):
     print(f"Action: Processing request '{request}'")
     system_prompt = f"You are a backend API. Output data based on the request.\nReliability Rules: {steer_rules}"

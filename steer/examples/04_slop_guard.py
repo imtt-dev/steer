@@ -1,10 +1,10 @@
 from steer import capture, MockLLM
-from steer.verifiers import SlopVerifier
+from steer.judges import SlopJudge
 
-# The SlopVerifier is a deterministic 'Reality Lock' for brand voice.
-slop_guard = SlopVerifier(name="Slop Filter")
+# The SlopJudge is a deterministic 'Reality Lock' for brand voice.
+slop_guard = SlopJudge(name="Slop Filter")
 
-@capture(tags=["brand_voice_agent"], verifiers=[slop_guard])
+@capture(tags=["brand_voice_agent"], Judges=[slop_guard])
 def get_system_status(query: str, steer_rules: str = ""):
     print(f"Action: Generating response for '{query}'")
     

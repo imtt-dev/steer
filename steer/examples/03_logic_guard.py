@@ -1,7 +1,7 @@
 from steer import capture, MockLLM
-from steer.verifiers import AmbiguityVerifier
+from steer.Judges import AmbiguityJudge
 
-logic_guard = AmbiguityVerifier(
+logic_guard = AmbiguityJudge(
     name="Ambiguity Check",
     tool_result_key="results",
     answer_key="message",
@@ -9,7 +9,7 @@ logic_guard = AmbiguityVerifier(
     required_phrase="which state"
 )
 
-@capture(tags=["weather_bot"], verifiers=[logic_guard])
+@capture(tags=["weather_bot"], Judges=[logic_guard])
 def check_forecast(location: str, steer_rules: str = ""):
     print(f"Action: Checking weather for '{location}'")
     system_prompt = f"You are a weather bot.\nPolicy: {steer_rules}"

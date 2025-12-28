@@ -5,7 +5,7 @@ from typing import Callable, List, Any
 
 from .schemas import Incident, TraceStep, TeachingOption
 from .worker import get_worker
-from .verifiers import BaseVerifier
+from .judges import RealityLock
 from .storage import rulebook 
 
 class VerificationError(Exception):
@@ -15,7 +15,7 @@ class VerificationError(Exception):
 
 def capture(
     name: str = "Agent Workflow", 
-    verifiers: List[BaseVerifier] = None,
+    Judges: List[RealityLock] = None,
     severity: str = "Medium",
     tags: List[str] = None,
     halt_on_failure: bool = True 
@@ -63,12 +63,12 @@ def capture(
             verification_label = "Runtime Monitor"
             smart_fixes = [] 
 
-            if verifiers and error_msg is None:
+            if Judges and error_msg is None:
                 flat_inputs = {}
                 if kwargs: flat_inputs.update(kwargs)
                 flat_inputs['__active_rules__'] = rulebook.get_rules_text(current_agent)
                 
-                for v in verifiers:
+                for v in Judges:
                     v_result = v.verify(flat_inputs, result)
                     if not v_result.passed:
                         # CRITICAL FIX: We set content=str(result) to show the raw bad output
@@ -78,7 +78,7 @@ def capture(
                             content=str(result) 
                         ))
                         detected_failure = v_result
-                        verification_label = v_result.verifier_name
+                        verification_label = v_result.Judge_name
                         smart_fixes = v_result.suggested_fixes 
                         break 
             

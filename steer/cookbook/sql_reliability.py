@@ -1,10 +1,10 @@
 import json
 from steer import capture, MockLLM
-from steer.verifiers import SqlVerifier
+from steer.Judges import SqlJudge
 
-sql_lock = SqlVerifier(name="Analytics Security")
+sql_lock = SqlJudge(name="Analytics Security")
 
-@capture(tags=["analytics_bot"], verifiers=[sql_lock])
+@capture(tags=["analytics_bot"], Judges=[sql_lock])
 def generate_sql(request: str, steer_rules: str = ""):
     print(f"Action: Converting to SQL: '{request}'")
     system = f"You are a SQL analyst. Schema: users, orders, products.\nRules: {steer_rules}"

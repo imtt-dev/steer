@@ -1,16 +1,16 @@
 import json
 from pydantic import BaseModel
 from steer import capture, MockLLM
-from steer.verifiers import PydanticVerifier, CitationVerifier
+from steer.Judges import PydanticJudge, CitationJudge
 
 class PolicyResponse(BaseModel):
     answer: str
     confidence: float
 
-schema_lock = PydanticVerifier(PolicyResponse, name="Policy Schema")
-citation_lock = CitationVerifier(name="Grounding Guard")
+schema_lock = PydanticJudge(PolicyResponse, name="Policy Schema")
+citation_lock = CitationJudge(name="Grounding Guard")
 
-@capture(tags=["hr_agent"], verifiers=[schema_lock, citation_lock])
+@capture(tags=["hr_agent"], Judges=[schema_lock, citation_lock])
 def ask_hr_bot(question: str, steer_rules: str = ""):
     print(f"Action: Searching knowledge base for: '{question}'")
     context = "[doc 1] PTO Policy: 20 days. [doc 2] Sick Leave: Unlimited with note."

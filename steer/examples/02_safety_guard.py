@@ -1,13 +1,13 @@
 from steer import capture, MockLLM
-from steer.verifiers import RegexVerifier
+from steer.Judges import RegexJudge
 
-email_guard = RegexVerifier(
+email_guard = RegexJudge(
     name="PII Shield",
     pattern=r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
     fail_message="Output contains visible email address."
 )
 
-@capture(tags=["support_bot"], verifiers=[email_guard])
+@capture(tags=["support_bot"], Judges=[email_guard])
 def analyze_ticket(ticket_content: str, steer_rules: str = ""):
     print(f"Action: Analyzing ticket '{ticket_content}'")
     system_prompt = f"You are a support agent.\nSecurity Protocols: {steer_rules}"

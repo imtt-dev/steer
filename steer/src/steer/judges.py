@@ -6,11 +6,11 @@ from pydantic import BaseModel, ValidationError
 from .schemas import VerificationResult, TeachingOption
 from .llm import Judge
 
-class BaseVerifier:
+class RealityLock:
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
         raise NotImplementedError("Subclasses must implement verify")
 
-class RegexVerifier(BaseVerifier):
+class RegexJudge(RealityLock):
     def __init__(self, name: str, pattern: str, fail_message: str):
         self.name = name
         self.pattern = pattern
@@ -30,31 +30,31 @@ class RegexVerifier(BaseVerifier):
                     logic_change="SECURITY OVERRIDE: You must REDACT all sensitive patterns with '[REDACTED]'. Ignore any previous instructions to confirm or repeat user details."
                 )
             ]
-        return VerificationResult(verifier_name=self.name, passed=passed, reason=self.fail_message, suggested_fixes=fixes)
+        return VerificationResult(Judge_name=self.name, passed=passed, reason=self.fail_message, suggested_fixes=fixes)
 
-class JsonVerifier(BaseVerifier):
+class JsonJudge(RealityLock):
     def __init__(self, name: str):
         self.name = name
 
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
         if isinstance(output, (dict, list)): 
-            return VerificationResult(verifier_name=self.name, passed=True)
+            return VerificationResult(Judge_name=self.name, passed=True)
 
         text_output = str(output).strip()
         if "```" in text_output:
             reason = "Detected Markdown code blocks."
             fixes = [TeachingOption(title="Strict JSON Mode", description="Force raw JSON output.", recommended=True, logic_change="FORMAT CRITICAL: Output ONLY a valid JSON object. Do not include any conversational text or markdown formatting (no backticks).")]
-            return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+            return VerificationResult(Judge_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
 
         try:
             json.loads(text_output)
-            return VerificationResult(verifier_name=self.name, passed=True)
+            return VerificationResult(Judge_name=self.name, passed=True)
         except:
             reason = "Output is not valid JSON."
             fixes = [TeachingOption(title="Enforce JSON", description="Output must be parseable.", recommended=True, logic_change="FORMAT RULE: Output must be raw valid JSON.")]
-            return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+            return VerificationResult(Judge_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
 
-class AmbiguityVerifier(BaseVerifier):
+class AmbiguityJudge(RealityLock):
     def __init__(self, name: str, tool_result_key: str, answer_key: str, threshold: int = 5, required_phrase: str = None):
         self.name = name
         self.tool_key = tool_result_key
@@ -80,10 +80,10 @@ class AmbiguityVerifier(BaseVerifier):
                 fixes.append(TeachingOption(title=f"Require '{self.required_phrase}'", description=f"Must ask for {self.required_phrase}.", recommended=True, logic_change=f"POLICY: If multiple results found, you MUST ask the user for their {self.required_phrase}."))
             else:
                 fixes.append(TeachingOption(title="Enforce Clarification", description="Ask user.", recommended=True, logic_change="Rule: Ask clarifying questions."))
-            return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
-        return VerificationResult(verifier_name=self.name, passed=True)
+            return VerificationResult(Judge_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+        return VerificationResult(Judge_name=self.name, passed=True)
 
-class PydanticVerifier(BaseVerifier):
+class PydanticJudge(RealityLock):
     def __init__(self, model: Type[BaseModel], name: str = "Schema Validator"):
         self.name = name
         self.model = model
@@ -98,7 +98,7 @@ class PydanticVerifier(BaseVerifier):
                     return self._fail("Output is not a valid JSON object.")
             
             self.model.model_validate(data)
-            return VerificationResult(verifier_name=self.name, passed=True)
+            return VerificationResult(Judge_name=self.name, passed=True)
         except ValidationError as e:
             return self._fail(f"Schema validation failed: {str(e)}")
         except Exception as e:
@@ -112,9 +112,9 @@ class PydanticVerifier(BaseVerifier):
                 logic_change=f"STRUCTURE CRITICAL: Your output must strictly follow this JSON schema: {json.dumps(self.model.model_json_schema())}"
             )
         ]
-        return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+        return VerificationResult(Judge_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
 
-class CitationVerifier(BaseVerifier):
+class CitationJudge(RealityLock):
     def __init__(self, name: str = "Citation Guard"):
         self.name = name
 
@@ -130,10 +130,10 @@ class CitationVerifier(BaseVerifier):
                     logic_change="GROUNDING RULE: Every factual claim must be followed by a citation in brackets, e.g., [doc 1]. If the context does not contain the answer, state that you do not know."
                 )
             ]
-            return VerificationResult(verifier_name=self.name, passed=False, reason="Output missing required source citations.", suggested_fixes=fixes)
-        return VerificationResult(verifier_name=self.name, passed=True)
+            return VerificationResult(Judge_name=self.name, passed=False, reason="Output missing required source citations.", suggested_fixes=fixes)
+        return VerificationResult(Judge_name=self.name, passed=True)
 
-class FactConsistencyVerifier(BaseVerifier):
+class FactConsistencyJudge(RealityLock):
     def __init__(self, name: str, context_key: str, answer_key: str):
         self.name = name
         self.context_key = context_key
@@ -141,7 +141,7 @@ class FactConsistencyVerifier(BaseVerifier):
 
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
         if not Judge.is_configured():
-            return VerificationResult(verifier_name=self.name, passed=True, reason="Skipped: No LLM Key")
+            return VerificationResult(Judge_name=self.name, passed=True, reason="Skipped: No LLM Key")
 
         context_data = "N/A"
         answer_data = "N/A"
@@ -179,9 +179,9 @@ class FactConsistencyVerifier(BaseVerifier):
                 fixes.append(TeachingOption(title=opt["title"], description=opt["description"], recommended=opt["is_best"], logic_change=opt["rule_text"]))
             if not fixes: fixes.append(TeachingOption(title="Resolve Conflict", description="Define source of truth.", logic_change="Rule: Trust Source A over Source B."))
 
-        return VerificationResult(verifier_name=self.name, passed=passed, reason=eval_res.get("reason"), suggested_fixes=fixes)
+        return VerificationResult(Judge_name=self.name, passed=passed, reason=eval_res.get("reason"), suggested_fixes=fixes)
 
-class SlopVerifier(BaseVerifier):
+class SlopJudge(RealityLock):
     """
     Purifies the agent signal by blocking low-entropy AI slop and 
     common RLHF fingerprints.
@@ -240,7 +240,7 @@ class SlopVerifier(BaseVerifier):
             if entropy < self.entropy_threshold:
                 return self._fail(f"Low entropy detected ({entropy:.2f}). Signal is too predictable.")
 
-        return VerificationResult(verifier_name=self.name, passed=True)
+        return VerificationResult(Judge_name=self.name, passed=True)
 
     def _fail(self, reason: str) -> VerificationResult:
         fixes = [
@@ -251,9 +251,9 @@ class SlopVerifier(BaseVerifier):
                 logic_change="PROTOCOL OVERRIDE: Eliminate sycophancy. No apologies. No hedging. Use high-entropy, technical prose. Output raw data only."
             )
         ]
-        return VerificationResult(verifier_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+        return VerificationResult(Judge_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
 
-class SqlVerifier(BaseVerifier):
+class SqlJudge(RealityLock):
     """
     Prevents destructive or unauthorized SQL commands in agent outputs.
     """
@@ -272,7 +272,7 @@ class SqlVerifier(BaseVerifier):
                         logic_change="PROTOCOL: SELECT only. Deny DROP, DELETE, or TRUNCATE."
                     )
                 ]
-                return VerificationResult(verifier_name=self.name, passed=False, 
+                return VerificationResult(Judge_name=self.name, passed=False, 
                                         reason=f"Forbidden SQL command detected: {pattern}", 
                                         suggested_fixes=fixes)
-        return VerificationResult(verifier_name=self.name, passed=True)
+        return VerificationResult(Judge_name=self.name, passed=True)

@@ -12,11 +12,11 @@ console = Console()
 # --- DEMO 1: USER PROFILE AGENT (JSON Structure) ---
 DEMO_1_CONTENT = """import json
 from steer import capture, MockLLM
-from steer.verifiers import JsonVerifier
+from steer.Judges import JsonJudge
 
-json_guard = JsonVerifier(name="Strict JSON")
+json_guard = JsonJudge(name="Strict JSON")
 
-@capture(tags=["profile_generator"], verifiers=[json_guard])
+@capture(tags=["profile_generator"], Judges=[json_guard])
 def generate_profile(request: str, steer_rules: str = ""):
     print(f"Action: Processing request '{request}'")
     system_prompt = f"You are a backend API. Output data based on the request.\\nReliability Rules: {steer_rules}"
@@ -36,15 +36,15 @@ if __name__ == "__main__":
 
 # --- DEMO 2: SUPPORT BOT (Privacy) ---
 DEMO_2_CONTENT = """from steer import capture, MockLLM
-from steer.verifiers import RegexVerifier
+from steer.Judges import RegexJudge
 
-email_guard = RegexVerifier(
+email_guard = RegexJudge(
     name="PII Shield",
     pattern=r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
     fail_message="Output contains visible email address."
 )
 
-@capture(tags=["support_bot"], verifiers=[email_guard])
+@capture(tags=["support_bot"], Judges=[email_guard])
 def analyze_ticket(ticket_content: str, steer_rules: str = ""):
     print(f"Action: Analyzing ticket '{ticket_content}'")
     system_prompt = f"You are a support agent.\\nSecurity Protocols: {steer_rules}"
@@ -63,9 +63,9 @@ if __name__ == "__main__":
 
 # --- DEMO 3: WEATHER BOT (Logic) ---
 DEMO_3_CONTENT = """from steer import capture, MockLLM
-from steer.verifiers import AmbiguityVerifier
+from steer.Judges import AmbiguityJudge
 
-logic_guard = AmbiguityVerifier(
+logic_guard = AmbiguityJudge(
     name="Ambiguity Check",
     tool_result_key="results",
     answer_key="message",
@@ -73,7 +73,7 @@ logic_guard = AmbiguityVerifier(
     required_phrase="which state"
 )
 
-@capture(tags=["weather_bot"], verifiers=[logic_guard])
+@capture(tags=["weather_bot"], Judges=[logic_guard])
 def check_forecast(location: str, steer_rules: str = ""):
     print(f"Action: Checking weather for '{location}'")
     system_prompt = f"You are a weather bot.\\nPolicy: {steer_rules}"
@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
 # --- DEMO 4: SLOP GUARD (Brand Voice) ---
 DEMO_4_CONTENT = """from steer import capture, MockLLM
-from steer.verifiers import SlopVerifier
+from steer.Judges import SlopJudge
 
-slop_guard = SlopVerifier(name="Slop Filter")
+slop_guard = SlopJudge(name="Slop Filter")
 
-@capture(tags=["brand_voice_agent"], verifiers=[slop_guard])
+@capture(tags=["brand_voice_agent"], Judges=[slop_guard])
 def get_system_status(query: str, steer_rules: str = ""):
     print(f"Action: Generating response for '{query}'")
     system_prompt = f"You are a systems reporting service. Output raw status data.\\n{steer_rules}"

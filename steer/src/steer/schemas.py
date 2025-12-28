@@ -13,15 +13,15 @@ class TeachingOption(BaseModel):
     recommended: bool = False
     logic_change: Optional[str] = None # The "Why?" tooltip
 
-# --- LEGACY / INTERNAL TYPES (Needed for Verifiers) ---
+# --- LEGACY / INTERNAL TYPES (Needed for Judges) ---
 
 class VerificationResult(BaseModel):
     """The result of a single deterministic check."""
-    verifier_name: str
+    Judge_name: str
     passed: bool
     severity: str = "error"
     reason: Optional[str] = None
-    # Allow verifiers to propose specific fixes
+    # Allow Judges to propose specific fixes
     suggested_fixes: List[TeachingOption] = Field(default_factory=list)
 
 
@@ -59,7 +59,7 @@ class Incident(BaseModel):
     
     # The "Badge" Logic
     detection_source: Literal['FAST_PATH', 'SLOW_PATH'] = 'FAST_PATH'
-    detection_label: str # e.g. "Programmatic Verifier"
+    detection_label: str # e.g. "Programmatic Judge"
     
     severity: Literal['High', 'Medium', 'Low'] = 'Medium'
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
