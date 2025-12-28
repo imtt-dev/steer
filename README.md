@@ -44,7 +44,9 @@
 
 ## Why Steer?
 
-Because you cannot fix probability with more probability. Steer provides the "Hard Rules" (Deterministic Verification) required to ship complex agents without performing an **Agent Lobotomy**.
+I built Steer because probability cannot fix probability. It provides deterministic verification in runtime and automates DPO data collection. 
+
+When a verifier blocks an output and I provide a fix, Steer captures a Rejected/Chosen contrastive pair. I use these production failures to generate the datasets required to refactor a prompt monolith into model weights. This moves reliability from the context window to the model itself.
 
 ## The Problem: The Agent Lobotomy
 
