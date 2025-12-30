@@ -1,5 +1,4 @@
-from steer import capture, MockLLM
-from steer.judges import AmbiguityJudge
+from steer import capture, MockLLM, AmbiguityJudge
 
 logic_guard = AmbiguityJudge(
     name="Ambiguity Check",

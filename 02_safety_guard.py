@@ -1,5 +1,4 @@
-from steer import capture, MockLLM
-from steer.judges import RegexJudge
+from steer import capture, MockLLM, RegexJudge
 
 email_guard = RegexJudge(
     name="PII Shield",

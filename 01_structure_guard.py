@@ -18,3 +18,4 @@ if __name__ == "__main__":
     except Exception as e:
         print("[-] Status: Blocked")
         print(f"Reason: {e}")
+        print("Action Required: Run 'steer ui' to fix the 'profile_generator'.")
