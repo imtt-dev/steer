@@ -1,6 +1,5 @@
 import json
-from steer import capture, MockLLM
-from steer.Judges import SqlJudge
+from steer import capture, MockLLM, SqlJudge
 
 sql_lock = SqlJudge(name="Analytics Security")
 
