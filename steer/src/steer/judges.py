@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Type
 import json
 import re
+import math
 from collections import Counter
 from pydantic import BaseModel, ValidationError
 from .schemas import VerificationResult, TeachingOption
@@ -9,6 +10,21 @@ from .llm import Judge
 class RealityLock:
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
         raise NotImplementedError("Subclasses must implement verify")
+
+    def _extract_text(self, output: Any) -> str:
+        """Robust text extraction for PydanticAI and standard LLM outputs."""
+        if isinstance(output, str):
+            return output
+        if isinstance(output, dict):
+            return json.dumps(output)
+        
+        # PydanticAI result objects
+        for attr in ['text', 'data', 'output']:
+            val = getattr(output, attr, None)
+            if val is not None and isinstance(val, (str, dict, list)):
+                return str(val)
+        
+        return str(output)
 
 class RegexJudge(RealityLock):
     def __init__(self, name: str, pattern: str, fail_message: str):
@@ -63,8 +79,24 @@ class AmbiguityJudge(RealityLock):
         self.required_phrase = required_phrase 
 
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
-        tool_results = output.get(self.tool_key, []) if isinstance(output, dict) else []
-        agent_answer = output.get(self.answer_key, "") if isinstance(output, dict) else ""
+        # Extract data from various output formats
+        data = output
+        if hasattr(output, 'data'): 
+            data = output.data
+        elif hasattr(output, 'output'): 
+            data = output.output
+        
+        # Parse JSON strings
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except (json.JSONDecodeError, TypeError):
+                # If it's not JSON, treat as plain text answer
+                data = {self.answer_key: data, self.tool_key: []}
+        
+        # Extract tool results and agent answer
+        tool_results = data.get(self.tool_key, []) if isinstance(data, dict) else []
+        agent_answer = data.get(self.answer_key, "") if isinstance(data, dict) else str(data)
         count = len(tool_results) if isinstance(tool_results, list) else 0
         
         is_ambiguous = count > self.threshold
@@ -84,35 +116,18 @@ class AmbiguityJudge(RealityLock):
         return VerificationResult(Judge_name=self.name, passed=True)
 
 class PydanticJudge(RealityLock):
-    def __init__(self, model: Type[BaseModel], name: str = "Schema Validator"):
+    def __init__(self, model: Type[BaseModel], name: str = "Schema Lock"):
         self.name = name
-        self.model = model
-
-    def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
+        self.model = model   
+    def verify(self, inputs, output):
+        data = output   
+        if hasattr(output, 'data'): data = output.data
         try:
-            data = output
-            if isinstance(output, str):
-                try:
-                    data = json.loads(output)
-                except json.JSONDecodeError:
-                    return self._fail("Output is not a valid JSON object.")
-            
+            if isinstance(data, str): data = json.loads(data)
             self.model.model_validate(data)
             return VerificationResult(Judge_name=self.name, passed=True)
-        except ValidationError as e:
-            return self._fail(f"Schema validation failed: {str(e)}")
         except Exception as e:
-            return self._fail(f"Validation error: {str(e)}")
-
-    def _fail(self, reason: str) -> VerificationResult:
-        fixes = [
-            TeachingOption(
-                title="Enforce Schema",
-                description="Force output to match Pydantic model.",
-                logic_change=f"STRUCTURE CRITICAL: Your output must strictly follow this JSON schema: {json.dumps(self.model.model_json_schema())}"
-            )
-        ]
-        return VerificationResult(Judge_name=self.name, passed=False, reason=reason, suggested_fixes=fixes)
+            return VerificationResult(Judge_name=self.name, passed=False, reason=f"Schema mismatch: {str(e)}")
 
 class CitationJudge(RealityLock):
     def __init__(self, name: str = "Citation Guard"):
@@ -262,17 +277,36 @@ class SqlJudge(RealityLock):
         self.forbidden = [r"drop\s+table", r"delete\s+from", r"truncate", r"insert\s+into"]
 
     def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
-        query = str(output).lower()
+        text = str(output)
+        if hasattr(output, 'data'): text = str(output.data)
+        elif hasattr(output, 'output'): text = str(output.output)
+            
+        query = text.lower()
         for pattern in self.forbidden:
+            # FIX: Use re.search for robust pattern matching
             if re.search(pattern, query):
-                fixes = [
-                    TeachingOption(
-                        title="Read-Only Mode",
-                        description="Force agent to only use SELECT statements.",
-                        logic_change="PROTOCOL: SELECT only. Deny DROP, DELETE, or TRUNCATE."
-                    )
-                ]
-                return VerificationResult(Judge_name=self.name, passed=False, 
-                                        reason=f"Forbidden SQL command detected: {pattern}", 
-                                        suggested_fixes=fixes)
+                return VerificationResult(
+                    Judge_name=self.name, 
+                    passed=False, 
+                    reason=f"Forbidden SQL: {pattern}", 
+                    suggested_fixes=[TeachingOption(title="Read-Only", description="SELECT only.", logic_change="PROTOCOL: SELECT only.")]
+                )
         return VerificationResult(Judge_name=self.name, passed=True)
+
+class PydanticJudge(RealityLock):
+    def __init__(self, model: Type[BaseModel], name: str = "Schema Lock"):
+        self.name = name
+        self.model = model
+
+    def verify(self, inputs: Dict[str, Any], output: Any) -> VerificationResult:
+        try:
+            data = output
+            # Extract data if it's a PydanticAI Result object
+            if hasattr(output, 'data'): data = output.data
+            elif isinstance(output, str): data = json.loads(output)
+            
+            self.model.model_validate(data)
+            return VerificationResult(Judge_name=self.name, passed=True)
+        except Exception as e:
+            fixes = [TeachingOption(title="Enforce Schema", description="Align with Pydantic model.", logic_change="PROTOCOL: Follow JSON schema exactly.")]
+            return VerificationResult(Judge_name=self.name, passed=False, reason=f"Schema mismatch: {str(e)}", suggested_fixes=fixes)
