@@ -37,39 +37,61 @@
   <img src="https://raw.githubusercontent.com/imtt-dev/steer/main/assets/dashboard-hero.png" alt="Steer Mission Control" width="100%">
 </p>
 <p align="center">
-  <em>Mission Control: Enforcing deterministic truth on probabilistic model outputs.</em>
+  <em>Mission Control: Enforcing deterministic protocols on frontier reasoning models.</em>
 </p>
 
 ---
 
 ## Why Steer?
 
-I built Steer because probability cannot fix probability. It provides deterministic verification in runtime and automates DPO data collection. 
+I built Steer because probability cannot fix probability. It provides the deterministic verification required to ship autonomous agents without performing an **Agent Lobotomy** (stripping features to ensure safety). 
 
-When a Judge blocks an output and I provide a fix, Steer captures a Rejected/Chosen contrastive pair. I use these production failures to generate the datasets required to refactor a prompt monolith into model weights. This moves reliability from the context window to the model itself.
-
-## The Problem: The Agent Lobotomy
-
-Most developers are forced to cripple their agents in production (stripping autonomy and hardcoding paths) because they cannot verify probabilistic output. When an agent fails, simply logging the error is insufficient. You are usually stuck in a prompt-deploy death loop:
-1. Grep production logs for specific input/output pairs.
-2. Manually adjust prompts and hope for no regressions.
-3. Redeploy the entire application for a single instruction update.
-
-## The Solution: Reality Locks
-
-Steer wraps agent functions with deterministic **Reality Locks**. When a failure is detected (JSON syntax error, PII leak, or logic violation), Steer blocks the output and triggers a local "Teachable Moment" UI. You provide a correction, and Steer injects that rule into the agent context at runtime via sidecar dependency injection.
+Steer functions as an **Agent Service Mesh**. It decouples your reliability policy from your application logic, allowing you to secure entire frameworks or specific functions with a unified protocol.
 
 ## Operational Resilience
 
 * **Low-Latency Sidecar:** Verification adds <5ms overhead by running in-process.
-* **Fail-Safe Design:** Configurable behavior for internal library errors to prioritize uptime.
+* **Fail-Safe Design:** Configurable behavior for internal errors to prioritize uptime.
 * **Zero Data Exfiltration:** Local-first architecture. Traces and prompts never leave your network.
-* **Audit-Ready Logging:** Deterministic logs provide a clear trail for compliance audits.
+* **Audit-Ready Logging:** Every blocked response is logged with a deterministic reason code.
 
 ## Installation
 
 ```bash
 pip install steer-sdk
+```
+
+## Integration Paths
+
+### 1. The Agent Service Mesh (Global Governance)
+Steer provides zero-touch reliability for frameworks like PydanticAI. Patch the framework at your application entry point to enforce a central policy across all agents.
+
+```python
+import steer
+from pydantic_ai import Agent
+
+# Initialize the Service Mesh via a central policy file
+steer.init(patch=["pydantic_ai"], config="steer_policy.yaml")
+
+# Steer auto-detects the agent name and introspects tools/types to apply locks.
+agent = Agent('openai:gpt-5.2', name="finance_bot")
+result = agent.run_sync("Query Q4 revenue")
+```
+
+### 2. Sidecar Dependency Injection (Manual Control)
+For custom workflows or non-framework code, use the decorator pattern. Steer automatically injects taught rules into the `steer_rules` argument at runtime.
+
+```python
+from steer import capture, JsonJudge, SlopJudge
+
+locks = [JsonJudge(), SlopJudge(entropy_threshold=3.5)]
+
+@capture(Judges=locks)
+def finance_agent(query, steer_rules=""):
+    # steer_rules is populated automatically from Mission Control.
+    # Update behavior via local UI without a code redeploy.
+    system = f"You are a read-only SQL analyst.\n{steer_rules}"
+    return model.generate(system, query)
 ```
 
 ## Quickstart
@@ -87,68 +109,49 @@ steer ui     # Launches Mission Control at http://localhost:8000
 
 ## Reality Locks in Action
 
-The Steer workflow follows a simple loop: **Catch -> Teach -> Fix.**
+The Steer workflow follows a simple loop: **Catch → Teach → Fix.**
 
 ### 1. Structure Guard (JSON)
 **Problem:** Agent wraps JSON in Markdown backticks, breaking your parser.
+**Fix:** Block the output and enforce raw JSON formatting via the dashboard.
 ![Structure Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_json.gif)
 
 ### 2. Safety Guard (PII)
 **Problem:** Agent accidentally leaks customer emails or internal keys despite system instructions.
+**Fix:** Block the response and enforce redaction protocols across all agent outputs.
 ![Safety Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_pii.gif)
 
 ### 3. Logic Guard (Ambiguity)
 **Problem:** Agent guesses an ambiguous city (e.g., Springfield, IL) instead of asking for clarification.
+**Fix:** Force the agent to ask the user clarifying questions when tool results are non-unique.
 ![Logic Guard Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_logic.gif)
 
 ### 4. Slop Filter (Brand Voice)
-**Problem:** Agent uses sycophantic "AI-voice" (emojis, em-dashes, apologies) that pollutes data protocols.
-**The Tech:** Measures Shannon Entropy of the response. If the signal is too smooth (low entropy), Steer identifies it as an aesthetic lobotomy and blocks the output.
+**Problem:** Agent uses sycophantic "AI-voice" (emojis, em-dashes, apologies) that pollutes data protocols. 
+**The Fix:** Measures Shannon Entropy of the response. If the signal is too smooth (low entropy), Steer identifies it as an aesthetic lobotomy and blocks the output.
 ![Slop Filter Demo](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/demo_slop.gif)
 
 ## Cookbook
 
 Explore the `cookbook/` directory for enterprise-grade implementations.
 
-* [RAG Reliability](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/rag_reliability.py): Enforcing strict schemas and grounding citations.
-* [SQL Security](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/sql_reliability.py): Enforcing read-only protocols and preventing destructive injections.
-
-## Integration: Sidecar Dependency Injection
-
-Add `steer_rules` to your function arguments. Steer populates this automatically at runtime.
-
-```python
-from steer import capture
-from steer.Judges import JsonJudge, SlopJudge
-
-locks = [JsonJudge(), SlopJudge(entropy_threshold=3.5)]
-
-@capture(Judges=locks)
-def finance_agent(query, steer_rules=""):
-    # Rules are injected automatically. 
-    # Update agent behavior via local UI without a code redeploy.
-    system = f"You are a read-only SQL analyst.\n{steer_rules}"
-    return model.generate(system, query)
-```
+* [Zero-Touch Framework Patching](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/pydantic_ai_managed.py): Secure an entire PydanticAI agent fleet via a central policy file without decorators.
+* [RAG Reliability](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/rag_reliability.py): Enforcing grounded citations and schema validity.
+* [SQL Security](https://github.com/imtt-dev/steer/blob/main/steer/cookbook/sql_reliability.py): Preventing destructive injections in analytics agents.
 
 ## Data Engine: Synthetic Data for DPO
 
 Steer transforms runtime failures into a training asset. By capturing the delta between a **Blocked Response** (Rejected) and a **Taught Response** (Chosen), Steer generates contrastive pairs for Direct Preference Optimization (DPO).
 
-### Export Training Data
-
 ```bash
-# Export successful runs for SFT
-steer export --format openai
-
-# Export contrastive pairs (Rejected vs Chosen) for DPO
+# Export pairs ready for trl or unsloth
 steer export --format dpo
 ```
 
 ## Production-Ready Checklist
 
 - [x] **Pydantic v2 Compatible:** Built on high-performance serialization.
-- [x] **Thread-Safe:** Tested for high-concurrency environments.
+- [x] **Thread-Safe:** Tested for high-concurrency production environments.
 - [x] **Zero Dependencies:** Minimal footprint to reduce supply-chain risk.
 - [x] **Local-First:** No external API dependencies for core verification logic.
 

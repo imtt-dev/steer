@@ -1,0 +1,4 @@
+agents:
+  analytics_bot:
+    - SqlJudge
+    - SlopJudge
