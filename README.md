@@ -160,3 +160,8 @@ steer export --format dpo
 The Confident Idiot is a failure mode where an LLM generates a factually incorrect or structurally broken response with high probability (confidence). Because LLMs fail silently and plausibly, traditional observability is insufficient. Steer provides the verification layer to catch these failures before they hit your users.
 
 [Read the viral discussion on Hacker News.](https://news.ycombinator.com/item?id=46152838)
+
+## The Philosophy
+Steer was built to close the divide between Model Intelligence (MMLU) and Engineering Control.
+
+![Reliability Gap](https://raw.githubusercontent.com/imtt-dev/steer/main/assets/reliability_gap_chart.png)
