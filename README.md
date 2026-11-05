@@ -6,9 +6,6 @@
   <b><font size="7">Steer</font></b>
 </p>
 
-<p align="center">
-  <a href="https://steer-labs.com" target="_blank">steer-labs.com</a>
-</p>
 
 <p align="center">
   <strong>The Active Reliability Layer for AI Agents.</strong>
